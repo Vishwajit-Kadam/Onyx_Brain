@@ -1,0 +1,1008 @@
+You are Codex. You are working inside the existing Rust project `Onyx_Brain`.
+
+Current stable version: Onyx Brain v0.8.
+
+Important:
+v0.8 is stable, backed up, and verified. Do not break existing functionality.
+
+Before editing, quickly inspect the codebase structure and identify where each v0.9 feature should be added. Then implement v0.9 carefully.
+
+PROJECT CONTEXT
+
+Onyx Brain is a Rust-based, disk-backed, RAM-minimal, brain-inspired cognitive operating system.
+
+It currently has:
+- sparse cognitive runtime
+- virtual neurons and synapses
+- disk-backed memory
+- project worker
+- project modification
+- skill extraction
+- skill reuse
+- memory hygiene
+- benchmark mode
+- goal memory
+- priority scheduling
+- brain-status dashboard
+- maintenance command
+- performance profiling
+- route efficiency scoring
+- adaptive budgets
+- habits
+- live habit formation
+- plan cache
+- template cache
+- fast-path executor
+- cargo validation policy
+- runtime breakdown profiler
+- environment warnings
+- inspect summary
+- optimize command
+- routes command
+- cache-inspect command
+- template-cache-inspect command
+
+Current stable version: v0.8.
+
+v0.9 goal:
+Upgrade Onyx Brain from a fast-path live-habit cognitive system into a reliability-focused autonomous worker brain.
+
+v0.9 should make Onyx safer, more recoverable, and better at long-running work.
+
+Core design law:
+The whole brain exists as potential. Only the useful part becomes active.
+
+New v0.9 design law:
+Every action should be recoverable, inspectable, and resumable.
+
+Do not:
+- add LLM APIs
+- add GPU logic
+- use network access
+- use unsafe Rust
+- allow unrestricted shell execution
+- write outside sandbox
+- load the whole brain graph into RAM
+- break v0.1 through v0.8 behavior
+- remove existing tests
+- remove existing commands
+
+Keep:
+- disk-backed storage
+- RAM-minimal active state
+- sandboxed tools
+- allowlisted terminal commands
+- deterministic/rule-based behavior for now
+
+Implement Onyx Brain v0.9.
+
+==================================================
+V0.9 MAIN OBJECTIVE
+==================================================
+
+Onyx Brain v0.9 should add:
+
+1. action journal
+2. rollback system
+3. project snapshots
+4. failed task recovery
+5. corrupted JSON/state recovery
+6. state doctor command
+7. long-running session manager
+8. resumable work sessions
+9. repair mode
+10. reliability scoring
+11. safer file edit transactions
+12. regression protection
+13. better report artifacts
+14. worker mode simulation
+15. stronger benchmark/reliability tests
+
+The theme:
+Onyx should no longer just execute successfully.
+It should survive interruptions, bad edits, corrupted files, failed commands, and partial project states.
+
+==================================================
+1. ACTION JOURNAL
+==================================================
+
+Create:
+
+src/agency/action_journal.rs
+
+Goal:
+Every important action should be recorded before and after execution.
+
+Add:
+
+ActionJournalEntry {
+    id: String,
+    session_id: String,
+    goal_id: Option<String>,
+    project_id: Option<String>,
+    action_type: ActionType,
+    target_path: Option<String>,
+    command: Option<String>,
+    before_state_ref: Option<String>,
+    after_state_ref: Option<String>,
+    started_at: DateTime<Utc>,
+    completed_at: Option<DateTime<Utc>>,
+    status: ActionStatus,
+    error: Option<String>,
+    rollback_available: bool,
+    rollback_ref: Option<String>,
+    metadata: serde_json::Value,
+}
+
+ActionType:
+- CreateFile
+- ModifyFile
+- DeleteFile
+- CreateDirectory
+- RunCommand
+- UpdateMemory
+- UpdateSynapse
+- UpdateGoal
+- UpdateProjectState
+- CreateSnapshot
+- RestoreSnapshot
+- Maintenance
+- Benchmark
+- Unknown
+
+ActionStatus:
+- Planned
+- Running
+- Completed
+- Failed
+- RolledBack
+- Skipped
+
+Store journal entries in:
+
+data/journal/{session_id}/{entry_id}.json
+
+Create index:
+
+data/indexes/action_journal_index.json
+
+Requirements:
+- journal entry created before action
+- journal entry updated after action
+- failed action must preserve error
+- journal must be disk-backed
+- normal commands should not load full journal into RAM
+
+Add command:
+
+cargo run -- journal
+
+Shows latest journal entries:
+- time
+- action type
+- status
+- project
+- rollback availability
+
+Add:
+
+cargo run -- journal --session latest
+
+or if clap structure is simpler:
+
+cargo run -- journal-latest
+
+==================================================
+2. PROJECT SNAPSHOTS
+==================================================
+
+Create:
+
+src/agency/snapshot.rs
+
+Goal:
+Before risky project modification, create a lightweight snapshot.
+
+Snapshot should include:
+- project files
+- project_state.json
+- task_queue.json
+- relevant route trace
+- timestamp
+- reason
+
+Snapshot struct:
+
+ProjectSnapshot {
+    snapshot_id: String,
+    project_id: String,
+    project_name: String,
+    created_at: DateTime<Utc>,
+    reason: String,
+    files: Vec<SnapshotFile>,
+    project_state_ref: Option<String>,
+    task_queue_ref: Option<String>,
+    total_bytes: u64,
+}
+
+SnapshotFile {
+    relative_path: String,
+    content_path: String,
+    hash: String,
+    size_bytes: u64,
+}
+
+Store snapshots in:
+
+data/snapshots/{project_id}/{snapshot_id}/
+
+Actual copied files:
+data/snapshots/{project_id}/{snapshot_id}/files/...
+
+Metadata:
+data/snapshots/{project_id}/{snapshot_id}/snapshot.json
+
+Rules:
+- snapshot before ModifyProject
+- snapshot before multi-file edit
+- snapshot before retry fix
+- snapshot before maintenance that modifies project files
+- do not snapshot target/ directories
+- do not snapshot .git directories
+- do not snapshot huge files over a safe limit, default 5MB
+- include skipped file list
+
+Add command:
+
+cargo run -- snapshots
+
+Shows snapshots:
+- project
+- snapshot id
+- reason
+- created_at
+- total bytes
+
+Add:
+
+cargo run -- snapshot-create calc_cli --reason "manual checkpoint"
+
+Add:
+
+cargo run -- snapshot-restore <snapshot_id>
+
+Restore must:
+- stay inside sandbox
+- create a journal entry
+- create a pre-restore snapshot first
+- restore files safely
+- update project state if included
+
+==================================================
+3. ROLLBACK SYSTEM
+==================================================
+
+Create:
+
+src/agency/rollback.rs
+
+Goal:
+Undo the last failed or risky operation.
+
+Add command:
+
+cargo run -- rollback latest
+
+Behavior:
+1. Find latest rollback-capable journal entry.
+2. If it has a rollback_ref, restore previous state.
+3. If it belongs to a snapshot, restore snapshot.
+4. Mark journal entry as RolledBack.
+5. Write rollback report.
+
+Add:
+
+cargo run -- rollback --project calc_cli latest
+
+Rollback only within the named project.
+
+Rollback report:
+
+RollbackReport {
+    rollback_id: String,
+    target_entry_id: String,
+    project_name: Option<String>,
+    actions_reverted: u64,
+    files_restored: u64,
+    status: String,
+    errors: Vec<String>,
+    created_at: DateTime<Utc>,
+}
+
+Store:
+
+data/logs/rollback_report_{timestamp}.json
+
+Rules:
+- Never rollback outside sandbox.
+- Never delete user files outside sandbox.
+- If uncertain, refuse rollback and explain.
+- Do not rollback cargo target artifacts unless they were explicitly journaled.
+
+==================================================
+4. TRANSACTIONAL FILE EDITS
+==================================================
+
+Upgrade CodeEditorTool.
+
+Create:
+
+src/tools/transactional_edit.rs
+
+Goal:
+File edits should be atomic and recoverable.
+
+Add:
+
+FileEditTransaction {
+    transaction_id: String,
+    project_id: Option<String>,
+    file_path: String,
+    backup_path: String,
+    temp_path: String,
+    started_at: DateTime<Utc>,
+    completed_at: Option<DateTime<Utc>>,
+    status: TransactionStatus,
+    diff_summary: String,
+}
+
+TransactionStatus:
+- Started
+- Committed
+- Failed
+- RolledBack
+
+For every file edit:
+1. Validate path is inside sandbox.
+2. Create backup.
+3. Write to temp file.
+4. Validate temp file is UTF-8.
+5. Replace original atomically if possible.
+6. Commit transaction.
+7. Journal entry updated.
+
+If failure:
+- restore backup
+- mark Failed
+- include error
+
+Store transaction logs:
+
+data/transactions/{transaction_id}.json
+
+Add command:
+
+cargo run -- transactions
+
+Shows recent transactions.
+
+==================================================
+5. FAILED TASK RECOVERY
+==================================================
+
+Create:
+
+src/agency/recovery.rs
+
+Goal:
+When a task fails, Onyx should classify the failure and generate a recovery plan.
+
+Add:
+
+FailureKind:
+- CargoCheckFailure
+- CargoTestFailure
+- FileEditFailure
+- MissingProject
+- CorruptState
+- SandboxViolation
+- ToolDenied
+- Timeout
+- Unknown
+
+RecoveryPlan {
+    recovery_id: String,
+    failure_kind: FailureKind,
+    project_name: Option<String>,
+    failed_task_id: Option<String>,
+    suggested_steps: Vec<String>,
+    safe_to_auto_run: bool,
+    requires_user_review: bool,
+    confidence: f32,
+}
+
+Recovery actions:
+- rerun cargo check/test
+- restore snapshot
+- retry deterministic fix
+- rebuild project registry
+- rebuild memory indexes
+- mark task blocked
+- recommend user review
+
+Add command:
+
+cargo run -- recover latest
+
+If safe_to_auto_run:
+- execute recovery
+- journal actions
+- report result
+
+If not safe:
+- print recovery plan but do not execute
+
+Add:
+
+cargo run -- recover --project calc_cli latest
+
+==================================================
+6. CORRUPTED JSON / STATE RECOVERY
+==================================================
+
+Create:
+
+src/storage/state_recovery.rs
+
+Goal:
+If JSON state files become corrupted, Onyx should not crash blindly.
+
+Add:
+
+StateHealthIssue {
+    path: String,
+    issue_type: StateIssueType,
+    severity: Severity,
+    message: String,
+    repair_available: bool,
+}
+
+StateIssueType:
+- MissingFile
+- CorruptJson
+- SchemaMismatch
+- StaleIndex
+- BrokenReference
+- DuplicateEntry
+- MissingIndex
+- Unknown
+
+Severity:
+- Info
+- Warning
+- Error
+- Critical
+
+Add command:
+
+cargo run -- doctor
+
+Checks:
+- data folders exist
+- required indexes exist
+- project registry valid
+- goal index valid
+- memory indexes valid
+- route efficiency index valid
+- benchmark history valid
+- habit index valid
+- cache indexes valid
+- journal index valid
+- every registered project has project_state
+- every goal memory file loads
+- every memory file loads
+- no broken memory references if easy to check
+
+Output:
+Onyx Brain v0.9 doctor
+Issues found: N
+Critical: N
+Warnings: N
+Repair available: N
+Recommendation: ...
+
+Add:
+
+cargo run -- doctor --repair
+
+Repair rules:
+- rebuild missing indexes
+- archive corrupt JSON files instead of deleting
+- create fresh empty index if safe
+- remove broken references from indexes
+- never destroy data permanently
+- write repair report
+
+Store:
+
+data/logs/doctor_report_{timestamp}.json
+data/recovery/corrupt_archive/
+
+==================================================
+7. LONG-RUNNING SESSION MANAGER
+==================================================
+
+Create:
+
+src/agency/session.rs
+
+Goal:
+Group project/goal/benchmark actions into sessions.
+
+Add:
+
+WorkSession {
+    session_id: String,
+    title: String,
+    started_at: DateTime<Utc>,
+    ended_at: Option<DateTime<Utc>>,
+    status: SessionStatus,
+    goal_ids: Vec<String>,
+    project_ids: Vec<String>,
+    journal_entries: Vec<String>,
+    checkpoints: Vec<String>,
+    total_runtime_ms: u64,
+    total_energy: f32,
+    summary: String,
+}
+
+SessionStatus:
+- Active
+- Completed
+- Failed
+- Interrupted
+- Resumable
+- Archived
+
+Store:
+data/sessions/{session_id}.json
+
+Create index:
+data/indexes/session_index.json
+
+All project/goal/benchmark commands should create or attach to a session.
+
+Add commands:
+
+cargo run -- sessions
+
+Shows recent sessions.
+
+cargo run -- session-start "Build calculator improvements"
+
+cargo run -- session-status latest
+
+cargo run -- session-end latest
+
+cargo run -- session-resume latest
+
+Session resume should:
+- find incomplete tasks/checkpoints
+- resume safely
+- not duplicate completed tasks
+- preserve journal
+
+==================================================
+8. WORKER MODE SIMULATION
+==================================================
+
+Create:
+
+src/agency/worker_mode.rs
+
+Goal:
+Simulate an autonomous employee-style work loop safely.
+
+Add command:
+
+cargo run -- worker "Create and improve a Rust calculator project called worker_calc"
+
+Worker mode should:
+1. Create session.
+2. Create goal.
+3. Decompose into phases.
+4. Execute phase 1: create project.
+5. Execute phase 2: add features.
+6. Execute phase 3: run tests.
+7. Execute phase 4: inspect quality.
+8. Execute phase 5: final report.
+9. Stop.
+
+No infinite loop.
+No background work.
+No network.
+No unrestricted tools.
+
+Worker mode must have hard limits:
+- max phases: 5
+- max tasks: 20
+- max retries per task: 2
+- max runtime if simple to track
+- max tool actions
+
+Output:
+Onyx Brain v0.9 worker mode
+Session: ...
+Goal: ...
+Phases completed: ...
+Tasks completed: ...
+Failures: ...
+Recovery actions: ...
+Final report: ...
+
+This is a simulation of long-running autonomy but must complete in the current command.
+
+==================================================
+9. RELIABILITY SCORING
+==================================================
+
+Create:
+
+src/agency/reliability.rs
+
+Add:
+
+ReliabilityScore {
+    rollback_readiness: f32,
+    snapshot_coverage: f32,
+    journal_completeness: f32,
+    state_health: f32,
+    recovery_confidence: f32,
+    test_success: f32,
+    overall: f32,
+    notes: Vec<String>,
+}
+
+Use in:
+- brain-status
+- project final report
+- worker mode final report
+- doctor report
+
+Score logic:
+- snapshots exist before risky edits
+- journal entries complete
+- no corrupt state
+- tests pass
+- rollback available
+- recovery plans available for failures
+
+Add to project/goal output:
+Reliability score: ...
+
+==================================================
+10. REGRESSION PROTECTION
+==================================================
+
+Create:
+
+src/testing/regression_guard.rs
+
+Even though this is production code, keep it simple.
+
+Add command:
+
+cargo run -- regression-check
+
+It should run lightweight internal checks without invoking cargo test:
+- required folders exist
+- command registry includes expected commands
+- sandbox path validation works
+- version is v0.9
+- memory index loads
+- project registry loads
+- journal index loads
+- doctor has no critical issues
+
+Output:
+Onyx Brain v0.9 regression check
+Checks passed: ...
+Checks failed: ...
+Status: pass/fail
+
+This is not a replacement for cargo test.
+
+==================================================
+11. REPORT ARTIFACTS UPGRADE
+==================================================
+
+Upgrade final reports to include:
+- session id
+- journal summary
+- snapshot summary
+- rollback readiness
+- reliability score
+- recovery plan if any
+- runtime breakdown
+- fast path decision
+- habit/cache/template usage
+- cargo validation policy
+
+Add optional JSON report for every project:
+
+data/projects/{project_id}/final_report.json
+
+Keep existing final_report.md.
+
+==================================================
+12. BRAIN STATUS UPGRADE
+==================================================
+
+Upgrade:
+
+cargo run -- brain-status
+
+Add:
+- journal entries count
+- active sessions count
+- latest session
+- snapshots count
+- recent failures
+- doctor health summary
+- reliability score
+- rollback readiness
+- recovery recommendations
+
+Example:
+
+Reliability:
+  journal entries: 120
+  snapshots: 8
+  active sessions: 0
+  doctor: healthy
+  rollback readiness: 0.95
+  reliability score: 0.97
+
+==================================================
+13. INSPECT UPGRADE
+==================================================
+
+Upgrade:
+
+cargo run -- inspect
+
+Add:
+- latest journal entries
+- latest snapshots
+- active/recent sessions
+- recovery reports
+- doctor health summary
+- transaction summary
+
+Upgrade:
+
+cargo run -- inspect --summary
+
+Add concise reliability summary.
+
+==================================================
+14. BENCHMARK RELIABILITY MODE
+==================================================
+
+Add:
+
+cargo run -- benchmark reliability
+
+Benchmark should test:
+1. create project
+2. snapshot before modify
+3. modify project
+4. run cargo check/test
+5. rollback latest safe edit in a copied benchmark project
+6. restore snapshot
+7. run doctor
+8. run regression-check
+9. run maintain
+
+Report:
+BenchmarkReliabilityReport {
+    tasks_run,
+    tasks_successful,
+    rollback_success,
+    snapshot_restore_success,
+    doctor_critical_issues,
+    regression_check_passed,
+    reliability_score,
+    runtime_ms,
+    report_path,
+}
+
+Store:
+data/logs/benchmark_reliability_{timestamp}.json
+
+==================================================
+15. CLI VERSION LABEL
+==================================================
+
+All relevant commands should say v0.9 where appropriate:
+- init
+- project
+- goal
+- worker
+- doctor
+- recover
+- rollback
+- journal
+- sessions
+- snapshots
+- transactions
+- regression-check
+- benchmark
+- brain-status
+- inspect
+- maintain
+
+Do not break old command names.
+
+==================================================
+16. TESTS
+==================================================
+
+Add tests in:
+
+tests/test_v09.rs
+
+Required tests:
+
+1. action journal records file create and command actions
+2. journal command does not crash
+3. snapshot create stores metadata and files
+4. snapshot restore restores changed file
+5. rollback latest restores previous file state
+6. transactional edit creates backup and commits safely
+7. transactional edit rolls back on simulated failure
+8. doctor detects missing index
+9. doctor repair rebuilds missing index
+10. doctor archives corrupt JSON instead of deleting
+11. recovery plan created for cargo check failure
+12. recover latest does not run unsafe action
+13. session start/status/end works
+14. session resume does not duplicate completed tasks
+15. worker mode completes within limits
+16. reliability score is included in project report
+17. regression-check passes on healthy state
+18. benchmark reliability runs and saves report
+19. brain-status includes reliability stats
+20. inspect summary includes reliability stats
+21. final_report.json exists after project run
+22. rollback refuses outside-sandbox paths
+23. state recovery handles stale/broken index reference
+24. all previous v0.1-v0.8 tests still pass
+
+Run all tests:
+
+cargo fmt
+cargo check
+cargo test -- --nocapture
+
+==================================================
+17. DEMO COMMANDS THAT MUST WORK
+==================================================
+
+After implementation, run:
+
+cargo fmt
+cargo check
+cargo test -- --nocapture
+
+cargo run -- init
+
+cargo run -- worker "Create and improve a Rust calculator project called worker_calc"
+
+cargo run -- journal
+
+cargo run -- sessions
+
+cargo run -- snapshots
+
+cargo run -- transactions
+
+cargo run -- doctor
+
+cargo run -- regression-check
+
+cargo run -- benchmark reliability
+
+cargo run -- brain-status
+
+cargo run -- inspect --summary
+
+cargo run -- maintain
+
+cargo run -- inspect
+
+Expected behavior:
+- all previous commands still work
+- worker mode completes safely
+- journal shows actions
+- snapshots exist
+- doctor finds no critical issues
+- regression-check passes
+- benchmark reliability passes
+- brain-status shows reliability stats
+- inspect summary shows reliability stats
+- memory hygiene remains clean
+- no unrestricted tools
+- no writes outside sandbox
+- no full brain loading into RAM
+
+==================================================
+18. README UPDATE
+==================================================
+
+Update README.md with a v0.9 section.
+
+Include:
+- action journal
+- snapshots
+- rollback
+- transactional file edits
+- failed task recovery
+- doctor command
+- session manager
+- worker mode
+- reliability scoring
+- regression-check command
+- benchmark reliability mode
+- safety limitations
+
+Update command list.
+
+==================================================
+19. FINAL OUTPUT FORMAT
+==================================================
+
+When finished, report:
+
+1. Summary of v0.9 features implemented
+2. Files/modules changed
+3. Commands run
+4. Test results
+5. Demo output summary
+6. Any limitations
+7. Whether v0.1-v0.8 behavior was preserved
+
+==================================================
+IMPORTANT SAFETY AND ARCHITECTURE CONSTRAINTS
+==================================================
+
+Do not:
+- add LLM APIs
+- add network access
+- add GPU logic
+- use unsafe Rust
+- allow arbitrary shell commands
+- write outside sandbox
+- load all neurons/synapses/memories into RAM
+- create infinite loops
+- delete user project files outside sandbox
+- remove existing tests
+- make fake AGI claims
+- permanently delete corrupted data
+- rollback outside sandbox
+
+Do:
+- keep disk-backed design
+- keep active state task-local
+- keep tools sandboxed
+- keep terminal commands allowlisted
+- preserve v0.1-v0.8 commands
+- keep code clean and idiomatic Rust
+- use Result and proper error handling
+- update tests and README
+- make every risky action journaled
+- prefer archive over delete
+- make recovery conservative and safe
+
+Final expected result:
+A working Onyx Brain v0.9 that can journal actions, create snapshots, rollback risky edits, recover from failed tasks, repair corrupted state, manage long-running sessions, run worker-mode simulations, score reliability, run doctor/regression checks, and benchmark reliability while staying disk-backed, sparse, safe, and RAM-minimal.

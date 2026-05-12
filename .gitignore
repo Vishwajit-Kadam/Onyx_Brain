@@ -1,0 +1,21 @@
+# Rust build outputs
+/target/
+**/*.pdb
+
+# Generated sandbox outputs
+/sandbox/*
+!/sandbox/.gitkeep
+
+# Onyx generated runtime data
+/data/*
+!/data/.gitkeep
+!/data/seed/
+!/data/seed/.gitkeep
+
+# Backups/temp
+*.bak.*
+*.backup
+*.tmp
+
+# Internal checkpoints
+STABLE_V*_CHECKPOINT.md
