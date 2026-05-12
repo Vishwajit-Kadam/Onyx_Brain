@@ -168,7 +168,7 @@ fn brain_status_and_maintain_do_not_crash() {
     let brain = Brain::new(temp.path());
     brain.init().expect("init");
     let status = brain.brain_status().expect("status");
-    assert_eq!(status.version, "v0.9");
+    assert_eq!(status.version, "v0.0.1");
     let _ = brain.maintain().expect("maintain");
 }
 

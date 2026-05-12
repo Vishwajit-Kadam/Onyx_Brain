@@ -11,4 +11,7 @@ pub mod testing;
 pub mod tools;
 pub mod utils;
 
+pub const ONYX_VERSION: &str = concat!("v", env!("CARGO_PKG_VERSION"));
+pub const ONYX_VERSION_NUMBER: &str = env!("CARGO_PKG_VERSION");
+
 pub use crate::core::brain::Brain;

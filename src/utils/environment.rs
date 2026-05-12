@@ -18,7 +18,7 @@ pub fn environment_report(path: impl AsRef<Path>) -> EnvironmentReport {
     let long_path_warning = display.len() > 180;
     let mut notes = Vec::new();
     if is_onedrive_path {
-        notes.push("Project is inside OneDrive or a synced cloud folder. File sync may increase runtime for file-heavy tasks.".to_string());
+        notes.push("Project is inside a synced cloud folder. File sync may increase runtime for file-heavy tasks.".to_string());
     }
     if path_has_spaces {
         notes.push("Path contains spaces; tool invocation remains safe but path handling may add overhead in some environments.".to_string());

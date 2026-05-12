@@ -5,6 +5,7 @@ use crate::{
     agency::{load_action_journal_index, load_project_registry},
     storage::{doctor, DiskStore},
     tools::FilesystemTool,
+    ONYX_VERSION_NUMBER,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -32,7 +33,7 @@ pub fn regression_check(store: &DiskStore) -> Result<RegressionCheckReport> {
     }
     check!(store.paths.data.exists(), "data folder missing");
     check!(store.paths.sandbox.exists(), "sandbox folder missing");
-    check!(env!("CARGO_PKG_VERSION") == "0.9.0", "version is not v0.9");
+    check!(ONYX_VERSION_NUMBER == "0.0.1", "version is not v0.0.1");
     let fs = FilesystemTool::new(&store.paths.sandbox)?;
     check!(
         fs.safe_path("../escape").is_err(),

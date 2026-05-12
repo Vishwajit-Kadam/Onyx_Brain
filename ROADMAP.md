@@ -1,58 +1,39 @@
-\# Onyx Brain Roadmap
+# Roadmap
 
+Public versioning starts at `v0.0.1`. Earlier `v0.1` through `v0.9` labels were private prototype milestones.
 
+## v0.0.1
 
-\## Current Stable Version: v0.6
+- First public experimental release.
+- Disk-backed sparse cognitive runtime.
+- Sandboxed project worker.
+- Goal execution, worker mode, and reliability tools.
+- Public documentation and release packaging.
 
+## v0.0.2
 
+- Bug fixes.
+- Documentation improvements.
+- Repository cleanup.
+- More regression tests.
+- Clearer examples for common workflows.
 
-Working features:
+## v0.1.0
 
-\- Sparse disk-backed cognitive runtime
+- Stable experimental API boundaries.
+- Cleaner plugin boundaries.
+- Cleaner storage backend interfaces.
+- Better examples for memory, skills, sessions, and rollback.
 
-\- Virtual neurons and synapses
+## v0.2.0
 
-\- Memory hierarchy
+- Optional LLM adapter interface.
+- Adapters remain sandboxed and disabled by default.
+- Stronger policy gates around external model/tool use.
 
-\- Procedural skill extraction and reuse
+## v0.3.0
 
-\- Project creation and modification
-
-\- Goal memory
-
-\- Priority scheduling
-
-\- Benchmarking
-
-\- Brain status dashboard
-
-\- Maintenance and memory hygiene
-
-
-
-\## Next Version: v0.7 Adaptive Efficiency Brain
-
-
-
-Goals:
-
-\- Performance profiling
-
-\- Route efficiency scoring
-
-\- Adaptive budget manager
-
-\- Habit formation
-
-\- Habit reuse
-
-\- Plan cache
-
-\- Optimize command
-
-\- Routes command
-
-\- Habits command
-
-\- Cache inspect command
-
+- External tool plugin system.
+- Stronger benchmark suite.
+- More realistic recovery simulations.
+- Improved documentation for embedding Onyx Brain in other Rust projects.

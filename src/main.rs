@@ -1,6 +1,6 @@
 use anyhow::Result;
 use clap::{Parser, Subcommand, ValueEnum};
-use onyx_brain::{memory::MemoryType, Brain};
+use onyx_brain::{memory::MemoryType, Brain, ONYX_VERSION};
 
 #[derive(Debug, Parser)]
 #[command(name = "onyx_brain", version, about = "Miniature sparse cognitive OS")]
@@ -129,11 +129,11 @@ fn main() -> Result<()> {
     match cli.command {
         Command::Init => {
             brain.init()?;
-            println!("Onyx Brain v0.9 initialized");
+            println!("Onyx Brain {ONYX_VERSION} initialized");
         }
         Command::Think { input } => {
             let output = brain.think(input)?;
-            println!("Onyx Brain v0.9");
+            println!("Onyx Brain {ONYX_VERSION}");
             println!("Task: {}", output.task);
             println!("Task Type: {:?}", output.task_type);
             println!(
@@ -173,7 +173,7 @@ fn main() -> Result<()> {
         }
         Command::Project { input } => {
             let output = brain.run_project(input)?;
-            println!("Onyx Brain v0.9 project worker");
+            println!("Onyx Brain {ONYX_VERSION} project worker");
             println!("Intent: {:?}", output.intent);
             println!("Project name: {}", output.project_name);
             println!(
@@ -367,7 +367,7 @@ fn main() -> Result<()> {
             println!("RAM-minimal note: {}", output.ram_minimal_note);
         }
         Command::Projects => {
-            println!("Onyx Brain v0.9 projects");
+            println!("Onyx Brain {ONYX_VERSION} projects");
             for project in brain.projects()? {
                 println!(
                     "{} | {} | {} | {} | {}",
@@ -381,7 +381,7 @@ fn main() -> Result<()> {
         }
         Command::Goal { input } => {
             let output = brain.execute_goal(input.clone())?;
-            println!("Onyx Brain v0.9 goal execution");
+            println!("Onyx Brain {ONYX_VERSION} goal execution");
             println!("Goal: {input}");
             println!("Goal status: {:?}", output.goal_status);
             println!(
@@ -445,7 +445,7 @@ fn main() -> Result<()> {
             println!("Goal memory: {}", output.goal_memory_path);
         }
         Command::Goals => {
-            println!("Onyx Brain v0.9 goals");
+            println!("Onyx Brain {ONYX_VERSION} goals");
             for goal in brain.goals()? {
                 println!(
                     "{} | {:?} | {:?} | {:?} | {}",
@@ -455,7 +455,7 @@ fn main() -> Result<()> {
         }
         Command::ProjectInspect { project_name } => {
             let output = brain.project_inspect(&project_name)?;
-            println!("Onyx Brain v0.9 project inspect");
+            println!("Onyx Brain {ONYX_VERSION} project inspect");
             println!("Project: {}", output.project_name);
             println!("Root: {}", output.root_path);
             println!("Status: {}", output.status);
@@ -485,14 +485,14 @@ fn main() -> Result<()> {
         }
         Command::Resume { goal_id } => {
             let output = brain.resume_project(&goal_id)?;
-            println!("Onyx Brain v0.9 resume");
+            println!("Onyx Brain {ONYX_VERSION} resume");
             println!("Project name: {}", output.project_name);
             println!("Final status: {}", output.final_status);
             println!("Project report path: {}", output.project_report_path);
         }
         Command::MemoryInspect => {
             let report = brain.memory_inspect()?;
-            println!("Onyx Brain v0.9 memory inspect");
+            println!("Onyx Brain {ONYX_VERSION} memory inspect");
             println!("Total memories: {}", report.total_memories);
             println!("Semantic memories: {}", report.semantic_memories);
             println!("Procedural memories: {}", report.procedural_memories);
@@ -509,7 +509,7 @@ fn main() -> Result<()> {
         }
         Command::MemoryDedup => {
             let report = brain.memory_dedup()?;
-            println!("Onyx Brain v0.9 memory dedup");
+            println!("Onyx Brain {ONYX_VERSION} memory dedup");
             println!("Duplicate groups: {}", report.duplicate_groups);
             println!("Memories archived: {}", report.memories_archived);
             println!("Report: {}", report.report_path);
@@ -517,7 +517,7 @@ fn main() -> Result<()> {
         Command::Benchmark { name } => {
             if name == "compare" {
                 let report = brain.benchmark_compare()?;
-                println!("Onyx Brain v0.9 benchmark compare");
+                println!("Onyx Brain {ONYX_VERSION} benchmark compare");
                 println!("Last score: {:?}", report.last_score);
                 println!("Best score: {:?}", report.best_score);
                 println!("Average score: {:.2}", report.average_score);
@@ -534,7 +534,7 @@ fn main() -> Result<()> {
                 println!("Memory hygiene trend: {}", report.memory_hygiene_trend);
             } else if name == "reliability" {
                 let report = brain.benchmark_reliability()?;
-                println!("Onyx Brain v0.9 reliability benchmark");
+                println!("Onyx Brain {ONYX_VERSION} reliability benchmark");
                 println!("Tasks run: {}", report.tasks_run);
                 println!("Tasks successful: {}", report.tasks_successful);
                 println!("Rollback success: {}", report.rollback_success);
@@ -552,7 +552,7 @@ fn main() -> Result<()> {
                 println!("Report: {}", report.report_path);
             } else {
                 let report = brain.benchmark(&name)?;
-                println!("Onyx Brain v0.9 benchmark");
+                println!("Onyx Brain {ONYX_VERSION} benchmark");
                 println!("Benchmark: {}", report.benchmark_name);
                 println!("Tasks run: {}", report.tasks_run);
                 println!("Tasks successful: {}", report.tasks_successful);
@@ -600,7 +600,7 @@ fn main() -> Result<()> {
         }
         Command::Optimize => {
             let report = brain.optimize()?;
-            println!("Onyx Brain v0.9 optimization");
+            println!("Onyx Brain {ONYX_VERSION} optimization");
             println!("Profiles analyzed: {}", report.profiles_analyzed);
             println!("Habits created: {}", report.habits_created);
             println!("Habits strengthened: {}", report.habits_strengthened);
@@ -618,7 +618,7 @@ fn main() -> Result<()> {
         }
         Command::Habits => {
             let habits = brain.habits()?;
-            println!("Onyx Brain v0.9 habits");
+            println!("Onyx Brain {ONYX_VERSION} habits");
             if habits.is_empty() {
                 println!(
                     "No habits formed yet. Run repeated successful tasks and then `cargo run -- optimize`."
@@ -641,7 +641,7 @@ fn main() -> Result<()> {
         }
         Command::Routes => {
             let routes = brain.routes()?;
-            println!("Onyx Brain v0.9 routes");
+            println!("Onyx Brain {ONYX_VERSION} routes");
             println!("Routes tracked: {}", routes.route_count);
             println!("Average efficiency: {:.2}", routes.average_efficiency);
             println!("Most efficient routes:");
@@ -659,7 +659,7 @@ fn main() -> Result<()> {
         }
         Command::CacheInspect => {
             let cache = brain.cache_inspect()?;
-            println!("Onyx Brain v0.9 plan cache");
+            println!("Onyx Brain {ONYX_VERSION} plan cache");
             println!("Entries: {}", cache.entries);
             println!("Top cached plans:");
             for row in &cache.top_cached_plans {
@@ -674,7 +674,7 @@ fn main() -> Result<()> {
         }
         Command::TemplateCacheInspect => {
             let cache = brain.template_cache_inspect()?;
-            println!("Onyx Brain v0.9 template cache");
+            println!("Onyx Brain {ONYX_VERSION} template cache");
             println!("Entries: {}", cache.entries);
             if cache.top_templates.is_empty() {
                 println!("No templates cached yet. Run a successful Rust project creation first.");
@@ -690,7 +690,7 @@ fn main() -> Result<()> {
             println!("Cache hit rate: {:.2}", cache.cache_hit_rate);
         }
         Command::Journal { session } => {
-            println!("Onyx Brain v0.9 journal");
+            println!("Onyx Brain {ONYX_VERSION} journal");
             for entry in brain.journal(session)? {
                 println!(
                     "{} | {:?} | {:?} | project {:?} | rollback {}",
@@ -704,7 +704,7 @@ fn main() -> Result<()> {
         }
         Command::Snapshots => {
             let report = brain.snapshots()?;
-            println!("Onyx Brain v0.9 snapshots");
+            println!("Onyx Brain {ONYX_VERSION} snapshots");
             println!("Snapshots: {}", report.count);
             for row in report.snapshots {
                 println!("  - {row}");
@@ -715,7 +715,7 @@ fn main() -> Result<()> {
             reason,
         } => {
             let snapshot = brain.snapshot_create(&project_name, &reason)?;
-            println!("Onyx Brain v0.9 snapshot create");
+            println!("Onyx Brain {ONYX_VERSION} snapshot create");
             println!("Project: {}", snapshot.project_name);
             println!("Snapshot: {}", snapshot.snapshot_id);
             println!("Files: {}", snapshot.files.len());
@@ -723,7 +723,7 @@ fn main() -> Result<()> {
         }
         Command::SnapshotRestore { snapshot_id } => {
             let report = brain.snapshot_restore(&snapshot_id)?;
-            println!("Onyx Brain v0.9 snapshot restore");
+            println!("Onyx Brain {ONYX_VERSION} snapshot restore");
             println!("Snapshot: {}", report.snapshot_id);
             println!("Project: {}", report.project_name);
             println!("Files restored: {}", report.files_restored);
@@ -734,7 +734,7 @@ fn main() -> Result<()> {
                 return Err(anyhow::anyhow!("only rollback latest is supported"));
             }
             let report = brain.rollback_latest(project.as_deref())?;
-            println!("Onyx Brain v0.9 rollback");
+            println!("Onyx Brain {ONYX_VERSION} rollback");
             println!("Rollback: {}", report.rollback_id);
             println!("Target entry: {}", report.target_entry_id);
             println!("Files restored: {}", report.files_restored);
@@ -743,7 +743,7 @@ fn main() -> Result<()> {
         }
         Command::Transactions => {
             let report = brain.transactions()?;
-            println!("Onyx Brain v0.9 transactions");
+            println!("Onyx Brain {ONYX_VERSION} transactions");
             println!("Transactions: {}", report.count);
             for row in report.transactions {
                 println!("  - {row}");
@@ -751,7 +751,7 @@ fn main() -> Result<()> {
         }
         Command::Doctor { repair } => {
             let report = brain.doctor(repair)?;
-            println!("Onyx Brain v0.9 doctor");
+            println!("Onyx Brain {ONYX_VERSION} doctor");
             println!("Issues found: {}", report.issues_found);
             println!("Critical: {}", report.critical);
             println!("Warnings: {}", report.warnings);
@@ -765,7 +765,7 @@ fn main() -> Result<()> {
                 return Err(anyhow::anyhow!("only recover latest is supported"));
             }
             let result = brain.recover_latest(project.as_deref())?;
-            println!("Onyx Brain v0.9 recover");
+            println!("Onyx Brain {ONYX_VERSION} recover");
             println!("Failure kind: {:?}", result.plan.failure_kind);
             println!("Safe to auto-run: {}", result.plan.safe_to_auto_run);
             println!("Requires review: {}", result.plan.requires_user_review);
@@ -774,7 +774,7 @@ fn main() -> Result<()> {
             println!("Steps: {}", result.plan.suggested_steps.join("; "));
         }
         Command::Sessions => {
-            println!("Onyx Brain v0.9 sessions");
+            println!("Onyx Brain {ONYX_VERSION} sessions");
             for session in brain.sessions()? {
                 println!(
                     "{} | {:?} | {} | {:?}",
@@ -784,31 +784,31 @@ fn main() -> Result<()> {
         }
         Command::SessionStart { title } => {
             let session = brain.session_start(title)?;
-            println!("Onyx Brain v0.9 session start");
+            println!("Onyx Brain {ONYX_VERSION} session start");
             println!("Session: {}", session.session_id);
         }
         Command::SessionStatus { selector } => {
             let session = brain.session_status(&selector)?;
-            println!("Onyx Brain v0.9 session status");
+            println!("Onyx Brain {ONYX_VERSION} session status");
             println!("Session: {}", session.session_id);
             println!("Status: {:?}", session.status);
             println!("Summary: {}", session.summary);
         }
         Command::SessionEnd { selector } => {
             let session = brain.session_end(&selector)?;
-            println!("Onyx Brain v0.9 session end");
+            println!("Onyx Brain {ONYX_VERSION} session end");
             println!("Session: {}", session.session_id);
             println!("Status: {:?}", session.status);
         }
         Command::SessionResume { selector } => {
             let session = brain.session_resume(&selector)?;
-            println!("Onyx Brain v0.9 session resume");
+            println!("Onyx Brain {ONYX_VERSION} session resume");
             println!("Session: {}", session.session_id);
             println!("Status: {:?}", session.status);
         }
         Command::Worker { input } => {
             let output = brain.worker(input.clone())?;
-            println!("Onyx Brain v0.9 worker mode");
+            println!("Onyx Brain {ONYX_VERSION} worker mode");
             println!("Session: {}", output.session_id);
             println!("Goal: {}", output.goal);
             println!("Phases completed: {}", output.phases_completed);
@@ -819,7 +819,7 @@ fn main() -> Result<()> {
         }
         Command::RegressionCheck => {
             let report = brain.regression_check()?;
-            println!("Onyx Brain v0.9 regression check");
+            println!("Onyx Brain {ONYX_VERSION} regression check");
             println!("Checks passed: {}", report.checks_passed);
             println!("Checks failed: {}", report.checks_failed);
             println!("Status: {}", report.status);
@@ -829,7 +829,7 @@ fn main() -> Result<()> {
         }
         Command::CleanupBackups => {
             let report = brain.cleanup_backups()?;
-            println!("Onyx Brain v0.9 backup cleanup");
+            println!("Onyx Brain {ONYX_VERSION} backup cleanup");
             println!("Backups seen: {}", report.backups_seen);
             println!("Backups cleaned: {}", report.backups_removed);
             println!("Report: {}", report.report_path);
@@ -944,7 +944,7 @@ fn main() -> Result<()> {
             );
             println!("Environment:");
             println!(
-                "  OneDrive path: {}",
+                "  Cloud sync path: {}",
                 if status.environment.is_onedrive_path {
                     "yes"
                 } else {
@@ -978,7 +978,7 @@ fn main() -> Result<()> {
         }
         Command::Consolidate => {
             let report = brain.consolidate()?;
-            println!("Onyx Brain v0.9 consolidation");
+            println!("Onyx Brain {ONYX_VERSION} consolidation");
             println!("Logs seen: {}", report.logs_seen);
             println!("Strengthened routes: {}", report.strengthened_routes);
             println!("Pruned synapses: {}", report.pruned_synapses);
@@ -993,7 +993,7 @@ fn main() -> Result<()> {
         } => {
             if summary_mode {
                 let summary = brain.inspect_summary()?;
-                println!("Onyx Brain v0.9 state summary");
+                println!("Onyx Brain {ONYX_VERSION} state summary");
                 println!("Neurons: {}", summary.neurons);
                 println!("Synapses: {}", summary.synapses);
                 println!("Memories: {}", summary.memories);
@@ -1013,7 +1013,7 @@ fn main() -> Result<()> {
                 return Ok(());
             }
             let summary = brain.inspect()?;
-            println!("Onyx Brain v0.9 state");
+            println!("Onyx Brain {ONYX_VERSION} state");
             println!("Neurons: {}", summary.neurons);
             println!("Synapses: {}", summary.synapses);
             println!("Memories: {}", summary.memories);

@@ -2839,7 +2839,7 @@ impl Brain {
             recommended.push("no immediate maintenance required".to_string());
         }
         Ok(BrainStatus {
-            version: "v0.9".to_string(),
+            version: crate::ONYX_VERSION.to_string(),
             neurons: inspect.neurons,
             synapses: inspect.synapses,
             active_registered_projects: inspect.registered_project_count,
@@ -2944,7 +2944,7 @@ impl Brain {
         let benchmark = self.benchmark_compare()?;
         let routes = route_efficiency_overview(&self.store)?;
         Ok(InspectSummaryLite {
-            version: "v0.9".to_string(),
+            version: crate::ONYX_VERSION.to_string(),
             neurons: inspect.neurons,
             synapses: inspect.synapses,
             memories: inspect.memories,

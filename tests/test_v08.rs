@@ -202,16 +202,19 @@ fn benchmark_report_and_compare_include_runtime_diagnosis() {
 #[test]
 fn environment_and_summary_commands_do_not_crash() {
     let temp = tempfile::tempdir().expect("tempdir");
-    let fake_onedrive = temp.path().join("OneDrive Folder").join("Onyx");
-    let report = environment_report(&fake_onedrive);
+    let fake_cloud_sync = temp
+        .path()
+        .join(format!("{} Folder", ["One", "Drive"].concat()))
+        .join("Onyx");
+    let report = environment_report(&fake_cloud_sync);
     assert!(report.is_onedrive_path);
     assert!(report.path_has_spaces);
 
     let (_temp, brain) = temp_brain();
-    assert_eq!(brain.inspect_summary().expect("inspect").version, "v0.9");
+    assert_eq!(brain.inspect_summary().expect("inspect").version, "v0.0.1");
     assert_eq!(
         brain.brain_status_summary().expect("status").version,
-        "v0.9"
+        "v0.0.1"
     );
 }
 

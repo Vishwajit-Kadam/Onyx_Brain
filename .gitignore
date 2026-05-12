@@ -17,5 +17,5 @@
 *.backup
 *.tmp
 
-# Internal checkpoints
+# Internal prototype checkpoint notes
 STABLE_V*_CHECKPOINT.md
