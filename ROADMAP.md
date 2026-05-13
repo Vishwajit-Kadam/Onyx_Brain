@@ -1,6 +1,6 @@
 # Roadmap
 
-Public versioning starts at `v0.0.1`. Earlier `v0.1` through `v0.9` labels were private prototype milestones.
+Public versioning starts at `v0.0.1`. Earlier internal milestone labels were private prototype history.
 
 ## v0.0.1
 
@@ -12,18 +12,27 @@ Public versioning starts at `v0.0.1`. Earlier `v0.1` through `v0.9` labels were 
 
 ## v0.0.2
 
+- Autonomous Worker Engine.
+- `autonomize` command.
+- Full-bounded autonomy mode inside hard safety limits.
+- Markdown presentation artifact workflow.
+- Autonomous validation, repair, artifact inspection, and session reports.
+- Autonomy benchmark and autonomy score.
+
+## v0.0.3
+
 - Bug fixes.
 - Documentation improvements.
-- Repository cleanup.
-- More regression tests.
-- Clearer examples for common workflows.
+- More artifact examples.
+- Stronger autonomy regression tests.
+- Cleaner artifact index repair behavior.
 
 ## v0.1.0
 
 - Stable experimental API boundaries.
 - Cleaner plugin boundaries.
 - Cleaner storage backend interfaces.
-- Better examples for memory, skills, sessions, and rollback.
+- Better examples for memory, skills, sessions, rollback, and autonomy.
 
 ## v0.2.0
 

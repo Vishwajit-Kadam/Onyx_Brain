@@ -18,6 +18,14 @@ Terminal use must remain allowlisted. The runtime should not expose arbitrary sh
 
 Onyx Brain does not use network access by default and does not include an LLM API by default.
 
+## Bounded Autonomy
+
+`FullBounded` autonomy means no follow-up questions inside hard safety limits. It still preserves sandboxed writes, allowlisted terminal commands, finite task and retry limits, no network by default, and no background execution.
+
+Task graphs, queue runs, review-only mode, repair-only mode, and export-package flows are synchronous and finite. Review-only does not modify reviewed artifacts. Repair-only may only apply bounded auto-fixes to validation or quality issues.
+
+Research-like documents use claim caution because the runtime does not verify facts over the network by default. Generated outputs may include citation placeholders and verification notes rather than fabricated sources.
+
 ## Snapshots And Rollback
 
 Before risky modifications, the runtime can create snapshots. Transactional edits create backups and journal entries. Rollback and restore are designed to write only inside the sandbox.

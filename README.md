@@ -57,7 +57,52 @@ The current release is a deterministic cognitive runtime skeleton. Future releas
 - Transactional file edits
 - Project snapshots and rollback
 - Doctor, repair, recovery plans, and regression checks
-- Basic and reliability benchmark modes
+- Bounded autonomous worker engine for artifact creation
+- Basic, reliability, and autonomy benchmark modes
+
+## Autonomous Worker Engine
+
+Onyx Brain v0.0.2 adds `autonomize`, a bounded autonomous worker command. It can parse a high-level prompt, create a work session, plan phases, create markdown artifacts, validate outputs, repair safe omissions, write reports, and stop safely.
+
+`FullBounded` means autonomous inside hard limits. It does not mean unrestricted access, consciousness, AGI, or superintelligence.
+
+The expanded v0.0.2 layer also supports multi-artifact packs. Learning-pack and proposal prompts can produce related markdown files, dependency metadata, assumptions and limitations logs, quality reviews, bounded revisions, and export folders.
+
+The continuation pass adds task graphs, report cards, self-questioning, release-kit and documentation-pack generators, consistency checks, reflection memory, queue-run, and export inspection. These are still deterministic bounded-autonomy features, not AGI or consciousness.
+
+The advanced continuation adds launch/startup packages, technical report packs, product spec packs, work contracts, done definitions, workspace profiles, local research briefs, knowledge-gap logs, execution traces, final audits, v2 report cards, cross-linked artifacts, export manifests with file sizes and hashes, capability/history/cleanup commands, and an advanced autonomy benchmark.
+
+Example:
+
+```bash
+cargo run -- autonomize --level full-bounded "Create a 10-slide presentation about brain-inspired AI for students with speaker notes and a design guide"
+cargo run -- artifacts
+cargo run -- artifact-inspect latest
+cargo run -- session-report latest
+```
+
+Learning-pack example:
+
+```bash
+cargo run -- autonomize --level full-bounded "Create a complete learning pack about brain-inspired AI for students with a 10-slide deck, speaker notes, study guide, quiz, glossary, design guide, and final report"
+cargo run -- artifact-packs
+cargo run -- artifact-pack-inspect latest
+cargo run -- review-artifacts latest
+cargo run -- export-package latest
+cargo run -- export-inspect latest
+```
+
+Advanced autonomy commands:
+
+```bash
+cargo run -- capabilities
+cargo run -- trace latest
+cargo run -- autonomy-history
+cargo run -- cleanup-autonomy
+cargo run -- benchmark advanced-autonomy
+```
+
+Presentation and pack outputs are export-ready markdown under `sandbox/artifacts/{session_id}/` and `sandbox/workspaces/{session_id}/`. v0.0.2 does not create binary `.pptx` files.
 
 ## Safety Model
 
@@ -77,6 +122,7 @@ This does not make Onyx Brain safe for sensitive production systems. Review tool
 ```bash
 cargo run -- init
 cargo run -- worker "Create and improve a Rust calculator project called worker_calc"
+cargo run -- autonomize --level full-bounded "Create a 10-slide presentation about brain-inspired AI for students with speaker notes and a design guide"
 cargo run -- doctor
 cargo run -- regression-check
 cargo run -- brain-status
@@ -110,6 +156,7 @@ cargo run -- transactions
 cargo run -- rollback latest
 cargo run -- recover latest
 cargo run -- benchmark reliability
+cargo run -- benchmark autonomy
 cargo run -- maintain
 ```
 
@@ -165,11 +212,6 @@ cargo test -- --nocapture
 
 Generated runtime data under `data/`, generated projects under `sandbox/`, and Rust build outputs under `target/` are intentionally ignored.
 
-## Roadmap
-
-Public versioning starts at `v0.0.1`. Internal prototype milestones `v0.1` through `v0.9` were private development history.
-
-See [ROADMAP.md](ROADMAP.md).
 
 ## License
 

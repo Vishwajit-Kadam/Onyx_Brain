@@ -6,7 +6,12 @@ use std::{fs, path::PathBuf};
 use crate::{
     agency::{
         action_journal_index_path, load_action_journal_index, load_project_registry,
-        load_session_index, session_index_path,
+        load_session_index, load_workspace_index, recipe_index_path, session_index_path,
+        workspace_index_path,
+    },
+    artifacts::{
+        artifact_index_path, artifact_pack_index_path, load_artifact_index,
+        load_artifact_pack_index,
     },
     routing::load_route_efficiency,
     storage::{load_json, save_json, DiskStore},
@@ -66,6 +71,10 @@ pub fn doctor(store: &DiskStore, repair: bool) -> Result<DoctorReport> {
         store.paths.indexes.join("memory_keywords.json"),
         action_journal_index_path(store),
         session_index_path(store),
+        artifact_index_path(store),
+        artifact_pack_index_path(store),
+        workspace_index_path(store),
+        recipe_index_path(store),
     ];
     for path in required_indexes {
         if !path.exists() {
@@ -122,6 +131,14 @@ pub fn doctor(store: &DiskStore, repair: bool) -> Result<DoctorReport> {
         &mut issues,
     );
     check_json("session index", session_index_path(store), &mut issues);
+    check_json("artifact index", artifact_index_path(store), &mut issues);
+    check_json(
+        "artifact pack index",
+        artifact_pack_index_path(store),
+        &mut issues,
+    );
+    check_json("workspace index", workspace_index_path(store), &mut issues);
+    check_json("recipe index", recipe_index_path(store), &mut issues);
 
     if let Ok(registry) = load_project_registry(store) {
         for project in registry.projects {
@@ -142,10 +159,91 @@ pub fn doctor(store: &DiskStore, repair: bool) -> Result<DoctorReport> {
         }
     }
 
+    if let Ok(index) = load_artifact_index(store) {
+        for artifact in index.artifacts.into_iter().take(256) {
+            let path = PathBuf::from(&artifact.path);
+            if !path.exists() {
+                issues.push(StateHealthIssue {
+                    path: artifact.path,
+                    issue_type: StateIssueType::BrokenReference,
+                    severity: Severity::Warning,
+                    message: "artifact index references a missing file".to_string(),
+                    repair_available: true,
+                });
+            } else if path
+                .file_name()
+                .and_then(|name| name.to_str())
+                .is_some_and(|name| name == "artifact_manifest.json")
+            {
+                check_json("artifact manifest", path, &mut issues);
+            }
+        }
+    }
+
+    if let Ok(sessions) = load_session_index(store) {
+        for session in sessions
+            .sessions
+            .into_iter()
+            .filter(|session| session.title.contains("autonomous worker"))
+            .take(128)
+        {
+            let report = store
+                .paths
+                .sessions
+                .join(&session.session_id)
+                .join("session_report.json");
+            if !report.exists() {
+                issues.push(StateHealthIssue {
+                    path: report.display().to_string(),
+                    issue_type: StateIssueType::MissingFile,
+                    severity: Severity::Warning,
+                    message: "completed autonomous session is missing session_report.json"
+                        .to_string(),
+                    repair_available: false,
+                });
+            }
+        }
+    }
+
+    if let Ok(index) = load_artifact_pack_index(store) {
+        for pack in index.packs.into_iter().take(128) {
+            let path = PathBuf::from(&pack.manifest_path);
+            if !path.exists() {
+                issues.push(StateHealthIssue {
+                    path: pack.manifest_path,
+                    issue_type: StateIssueType::BrokenReference,
+                    severity: Severity::Warning,
+                    message: "artifact pack index references a missing pack manifest".to_string(),
+                    repair_available: true,
+                });
+            } else {
+                check_json("artifact pack manifest", path, &mut issues);
+            }
+        }
+    }
+
+    if let Ok(index) = load_workspace_index(store) {
+        for workspace in index.workspaces.into_iter().take(128) {
+            let manifest = PathBuf::from(&workspace.root_path).join("manifest.json");
+            if !manifest.exists() {
+                issues.push(StateHealthIssue {
+                    path: manifest.display().to_string(),
+                    issue_type: StateIssueType::MissingFile,
+                    severity: Severity::Warning,
+                    message: "workspace is missing manifest.json".to_string(),
+                    repair_available: false,
+                });
+            }
+        }
+    }
+
     if repair {
         archive_corrupt_json(store, &mut issues)?;
         let _ = load_action_journal_index(store);
         let _ = load_session_index(store);
+        let _ = load_artifact_index(store);
+        let _ = load_artifact_pack_index(store);
+        let _ = load_workspace_index(store);
         let _ = load_route_efficiency(store);
     }
     let critical = issues
@@ -246,6 +344,16 @@ fn replacement_json_for(path: &std::path::Path) -> serde_json::Value {
         "habit_index.json" => serde_json::json!({ "habits": {} }),
         "plan_cache_index.json" => serde_json::json!({ "plans": {} }),
         "template_cache_index.json" => serde_json::json!({ "templates": {} }),
+        "artifact_index.json" => serde_json::json!({ "artifacts": [] }),
+        "artifact_manifest.json" => serde_json::json!({
+            "session_id": "recovered",
+            "goal": "recovered corrupt manifest",
+            "artifacts": [],
+            "validation_score": 0.0,
+            "validation_passed": false,
+            "repairs_performed": 0,
+            "created_at": chrono::Utc::now()
+        }),
         _ => serde_json::json!({}),
     }
 }

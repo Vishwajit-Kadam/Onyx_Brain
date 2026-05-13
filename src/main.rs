@@ -1,6 +1,6 @@
 use anyhow::Result;
 use clap::{Parser, Subcommand, ValueEnum};
-use onyx_brain::{memory::MemoryType, Brain, ONYX_VERSION};
+use onyx_brain::{agency::AutonomyLevel, memory::MemoryType, Brain, ONYX_VERSION};
 
 #[derive(Debug, Parser)]
 #[command(name = "onyx_brain", version, about = "Miniature sparse cognitive OS")]
@@ -39,6 +39,75 @@ enum Command {
     Routes,
     CacheInspect,
     TemplateCacheInspect,
+    Autonomize {
+        #[arg(long, value_enum, default_value_t = AutonomyLevelArg::Standard)]
+        level: AutonomyLevelArg,
+        input: String,
+    },
+    Auto {
+        #[arg(long, value_enum, default_value_t = AutonomyLevelArg::Standard)]
+        level: AutonomyLevelArg,
+        input: String,
+    },
+    AutonomyPolicy,
+    Artifacts,
+    ArtifactInspect {
+        selector: String,
+    },
+    ArtifactPacks,
+    Packs,
+    ArtifactPackInspect {
+        selector: String,
+    },
+    PackInspect {
+        selector: String,
+    },
+    ReviewArtifacts {
+        selector: String,
+    },
+    RepairArtifacts {
+        selector: String,
+    },
+    Workspaces,
+    WorkspaceInspect {
+        selector: String,
+    },
+    Recipes,
+    RecipeInspect {
+        selector: String,
+    },
+    AutonomyStatus,
+    AutoStatus,
+    ExportPackage {
+        selector: String,
+    },
+    Export {
+        selector: String,
+    },
+    ExportInspect {
+        selector: String,
+    },
+    Exports,
+    SessionReport {
+        selector: String,
+    },
+    Report {
+        selector: String,
+    },
+    TaskGraph {
+        selector: String,
+    },
+    Reflections,
+    ImproveRecipes,
+    Capabilities,
+    Trace {
+        selector: String,
+    },
+    AutonomyHistory,
+    CleanupAutonomy,
+    QueueRun {
+        input: String,
+    },
     Journal {
         #[arg(long)]
         session: Option<String>,
@@ -114,6 +183,29 @@ enum MemoryTypeArg {
     Semantic,
     Procedural,
     Project,
+}
+
+#[derive(Debug, Clone, ValueEnum)]
+enum AutonomyLevelArg {
+    Assisted,
+    Standard,
+    High,
+    FullBounded,
+    ReviewOnly,
+    RepairOnly,
+}
+
+impl From<AutonomyLevelArg> for AutonomyLevel {
+    fn from(value: AutonomyLevelArg) -> Self {
+        match value {
+            AutonomyLevelArg::Assisted => AutonomyLevel::Assisted,
+            AutonomyLevelArg::Standard => AutonomyLevel::Standard,
+            AutonomyLevelArg::High => AutonomyLevel::High,
+            AutonomyLevelArg::FullBounded => AutonomyLevel::FullBounded,
+            AutonomyLevelArg::ReviewOnly => AutonomyLevel::ReviewOnly,
+            AutonomyLevelArg::RepairOnly => AutonomyLevel::RepairOnly,
+        }
+    }
 }
 
 fn main() -> Result<()> {
@@ -550,6 +642,59 @@ fn main() -> Result<()> {
                 println!("Reliability score: {:.2}", report.reliability_score);
                 println!("Runtime ms: {}", report.runtime_ms);
                 println!("Report: {}", report.report_path);
+            } else if name == "autonomy" {
+                let report = brain.benchmark_autonomy()?;
+                println!("Onyx Brain {ONYX_VERSION} autonomy benchmark");
+                println!("Tasks run: {}", report.tasks_run);
+                println!("Tasks successful: {}", report.tasks_successful);
+                println!("Artifacts created: {}", report.artifacts_created);
+                println!("Validation pass rate: {:.2}", report.validation_pass_rate);
+                println!("Repairs performed: {}", report.repairs_performed);
+                println!("Safety stops: {}", report.safety_stops);
+                println!("Reliability score: {:.2}", report.reliability_score);
+                println!("Autonomy score: {:.2}", report.autonomy_score);
+                println!(
+                    "Artifact completion rate: {:.2}",
+                    report.artifact_completion_rate
+                );
+                println!("Revision success rate: {:.2}", report.revision_success_rate);
+                println!("Average quality score: {:.2}", report.average_quality_score);
+                println!("Assumptions recorded: {}", report.assumptions_recorded);
+                println!("Limitations recorded: {}", report.limitations_recorded);
+                println!("Recipe reuse count: {}", report.recipe_reuse_count);
+                println!("Workspace health: {:.2}", report.workspace_health);
+                println!("Runtime ms: {}", report.runtime_ms);
+                println!("Report: {}", report.report_path);
+            } else if name == "artifacts" {
+                let report = brain.benchmark_artifacts()?;
+                println!("Onyx Brain {ONYX_VERSION} artifacts benchmark");
+                println!("Tasks run: {}", report.tasks_run);
+                println!("Tasks successful: {}", report.tasks_successful);
+                println!("Artifacts created: {}", report.artifacts_created);
+                println!("Completeness score: {:.2}", report.artifact_completion_rate);
+                println!("Quality score: {:.2}", report.average_quality_score);
+                println!("Repair count: {}", report.repairs_performed);
+                println!(
+                    "Report card grade: {}",
+                    grade_from_score(report.autonomy_score)
+                );
+                println!("Report: {}", report.report_path);
+            } else if name == "advanced-autonomy" {
+                let report = brain.benchmark_advanced_autonomy()?;
+                println!("Onyx Brain {ONYX_VERSION} advanced autonomy benchmark");
+                println!("Tasks run: {}", report.tasks_run);
+                println!("Tasks successful: {}", report.tasks_successful);
+                println!("Artifacts created: {}", report.artifacts_created);
+                println!("Average quality score: {:.2}", report.average_quality_score);
+                println!("Consistency score: {:.2}", report.artifact_completion_rate);
+                println!(
+                    "Report card grade: {}",
+                    grade_from_score(report.autonomy_score)
+                );
+                println!("Export success rate: {:.2}", report.workspace_health);
+                println!("Safety stops: {}", report.safety_stops);
+                println!("Runtime ms: {}", report.runtime_ms);
+                println!("Report: {}", report.report_path);
             } else {
                 let report = brain.benchmark(&name)?;
                 println!("Onyx Brain {ONYX_VERSION} benchmark");
@@ -688,6 +833,306 @@ fn main() -> Result<()> {
                 cache.estimated_runtime_saved
             );
             println!("Cache hit rate: {:.2}", cache.cache_hit_rate);
+        }
+        Command::Autonomize { level, input } | Command::Auto { level, input } => {
+            let output = brain.autonomize(input.clone(), level.into())?;
+            println!("Onyx Brain {ONYX_VERSION} autonomous worker");
+            println!("Goal: {input}");
+            println!("Session: {}", output.session_id);
+            println!("Goal id: {}", output.goal_id);
+            println!("Status: {:?}", output.status);
+            println!("Tasks planned: {}", output.tasks_planned);
+            println!("Tasks completed: {}", output.tasks_completed);
+            println!("Tasks failed: {}", output.tasks_failed);
+            println!("Artifacts created: {}", output.artifacts_created.len());
+            for path in &output.artifacts_created {
+                println!("  - {path}");
+            }
+            println!("Validation passed: {}", output.validation_passed);
+            println!("Reliability score: {:.2}", output.reliability_score);
+            println!("Autonomy score: {:.2}", output.autonomy_score);
+            println!("Recovery actions: {}", output.recovery_actions.join("; "));
+            println!("Final report: {}", output.final_report_path);
+            println!(
+                "Bounded autonomy note: no network, no unrestricted shell, sandboxed writes, finite task/retry limits."
+            );
+        }
+        Command::AutonomyPolicy => {
+            let policy = brain.autonomy_policy()?;
+            println!("Onyx Brain {ONYX_VERSION} autonomy policy");
+            println!("Summary: {}", policy.summary);
+            println!("Max session minutes: {}", policy.limits.max_session_minutes);
+            println!("Max tasks: {}", policy.limits.max_tasks);
+            println!("Max phases: {}", policy.limits.max_phases);
+            println!(
+                "Max retries per task: {}",
+                policy.limits.max_retries_per_task
+            );
+            println!("Max tool actions: {}", policy.limits.max_tool_actions);
+            println!(
+                "Network allowed by default: {}",
+                policy.limits.network_allowed
+            );
+            println!(
+                "Unrestricted shell allowed: {}",
+                policy.limits.unrestricted_shell_allowed
+            );
+            println!("Safety rules: {}", policy.safety_rules.join("; "));
+        }
+        Command::Artifacts => {
+            let overview = brain.artifacts()?;
+            println!("Onyx Brain {ONYX_VERSION} artifacts");
+            println!("Artifacts: {}", overview.count);
+            for artifact in overview.artifacts {
+                println!(
+                    "{} | {:?} | {:.2}",
+                    artifact.session_id, artifact.artifact_type, artifact.validation_score
+                );
+                println!("  {}", artifact.path);
+            }
+        }
+        Command::ArtifactInspect { selector } => {
+            let report = brain.artifact_inspect(&selector)?;
+            println!("Onyx Brain {ONYX_VERSION} artifact inspect");
+            println!("Session: {}", report.session_id);
+            println!("Validation passed: {}", report.validation_passed);
+            println!("Validation score: {:.2}", report.validation_score);
+            println!("Manifest: {:?}", report.manifest_path);
+            println!("Report: {:?}", report.report_path);
+            println!("Files:");
+            for file in report.files {
+                println!("  - {file}");
+            }
+        }
+        Command::ArtifactPacks | Command::Packs => {
+            let overview = brain.artifact_packs()?;
+            println!("Onyx Brain {ONYX_VERSION} artifact packs");
+            println!("Packs: {}", overview.count);
+            for pack in overview.packs {
+                println!(
+                    "{} | {} | {:.2}",
+                    pack.session_id, pack.title, pack.validation_score
+                );
+                println!("  {}", pack.manifest_path);
+            }
+        }
+        Command::ArtifactPackInspect { selector } | Command::PackInspect { selector } => {
+            let report = brain.artifact_pack_inspect(&selector)?;
+            println!("Onyx Brain {ONYX_VERSION} artifact pack inspect");
+            println!("Pack: {}", report.pack_title);
+            println!("Manifest: {}", report.manifest_path);
+            println!("Artifacts:");
+            for artifact in report.artifacts {
+                println!("  - {artifact}");
+            }
+            println!("Dependency graph:");
+            for edge in report.dependency_graph {
+                println!("  - {edge}");
+            }
+            println!(
+                "Failed or missing artifacts: {}",
+                report.failed_or_missing_artifacts.len()
+            );
+        }
+        Command::ReviewArtifacts { selector } => {
+            let report = brain.review_artifacts(&selector)?;
+            println!("Onyx Brain {ONYX_VERSION} artifact review");
+            println!("Session: {}", report.session_id);
+            println!("Overall score: {:.2}", report.overall_score);
+            println!("Issues: {}", report.issues.len());
+            for issue in report.issues {
+                println!("  - {:?}: {}", issue.severity, issue.message);
+            }
+            println!("Report: {}", report.report_path);
+        }
+        Command::RepairArtifacts { selector } => {
+            let report = brain.repair_artifacts(&selector)?;
+            println!("Onyx Brain {ONYX_VERSION} artifact repair");
+            println!("Session: {}", report.session_id);
+            println!("Overall score: {:.2}", report.overall_score);
+            println!("Remaining issues: {}", report.issues.len());
+            println!("Report: {}", report.report_path);
+        }
+        Command::Workspaces => {
+            let overview = brain.workspaces()?;
+            println!("Onyx Brain {ONYX_VERSION} workspaces");
+            println!("Workspaces: {}", overview.count);
+            for workspace in overview.workspaces {
+                println!("  - {workspace}");
+            }
+        }
+        Command::WorkspaceInspect { selector } => {
+            let report = brain.workspace_inspect(&selector)?;
+            println!("Onyx Brain {ONYX_VERSION} workspace inspect");
+            println!("Workspace: {}", report.workspace_id);
+            println!("Session: {}", report.session_id);
+            println!("Root: {}", report.root_path);
+            println!("Status: {}", report.status);
+            for file in report.files {
+                println!("  - {file}");
+            }
+        }
+        Command::Recipes => {
+            println!("Onyx Brain {ONYX_VERSION} recipes");
+            for recipe in brain.recipes()? {
+                println!(
+                    "{} | {:.2} | {}",
+                    recipe.recipe_id, recipe.confidence, recipe.title
+                );
+            }
+        }
+        Command::RecipeInspect { selector } => {
+            let recipe = brain.recipe_inspect(&selector)?;
+            println!("Onyx Brain {ONYX_VERSION} recipe inspect");
+            println!("Recipe: {}", recipe.title);
+            println!("Triggers: {}", recipe.trigger_keywords.join(", "));
+            println!("Phases: {}", recipe.phase_templates.join(", "));
+            println!("Validation: {}", recipe.validation_rules.join(", "));
+        }
+        Command::AutonomyStatus | Command::AutoStatus => {
+            let status = brain.autonomy_status()?;
+            println!("Onyx Brain {ONYX_VERSION} autonomy status");
+            println!("Autonomous sessions: {}", status.autonomous_sessions);
+            println!("Artifact packs: {}", status.artifact_packs);
+            println!(
+                "Average autonomy score: {:.2}",
+                status.average_autonomy_score
+            );
+            println!("Average quality score: {:.2}", status.average_quality_score);
+            println!("Repairs performed: {}", status.repairs_performed);
+            println!("Safety stops: {}", status.safety_stops);
+            println!("Top recipes:");
+            for recipe in status.top_recipes {
+                println!("  - {recipe}");
+            }
+            println!("Recommendations: {}", status.recommendations.join("; "));
+        }
+        Command::ExportPackage { selector } | Command::Export { selector } => {
+            let report = brain.export_package(&selector)?;
+            println!("Onyx Brain {ONYX_VERSION} export package");
+            println!("Session: {}", report.session_id);
+            println!("Export path: {}", report.export_path);
+            println!("Files exported: {}", report.files_exported);
+        }
+        Command::ExportInspect { selector } => {
+            let report = brain.export_inspect(&selector)?;
+            println!("Onyx Brain {ONYX_VERSION} export inspect");
+            println!("Export: {}", report.export_path);
+            println!("Files:");
+            for file in report.files {
+                println!("  - {file}");
+            }
+        }
+        Command::Exports => {
+            let overview = brain.exports()?;
+            println!("Onyx Brain {ONYX_VERSION} exports");
+            println!("Exports: {}", overview.count);
+            for export in overview.exports {
+                println!("  - {export}");
+            }
+        }
+        Command::SessionReport { selector } | Command::Report { selector } => {
+            let report = brain.session_report(&selector)?;
+            println!("Onyx Brain {ONYX_VERSION} session report");
+            println!("Session: {}", report.session_id);
+            println!("Goal: {}", report.goal);
+            println!("Status: {}", report.status);
+            println!("Tasks completed: {}", report.tasks_completed);
+            println!("Artifacts created: {}", report.artifacts_created.len());
+            println!("Validation score: {:.2}", report.validation_score);
+            println!("Repairs performed: {}", report.repairs_performed);
+            println!("Reliability score: {:.2}", report.reliability_score);
+            println!("Final report: {}", report.final_report_path);
+            println!("Session report: {}", report.markdown_report_path);
+        }
+        Command::TaskGraph { selector } => {
+            let graph = brain.task_graph(&selector)?;
+            println!("Onyx Brain {ONYX_VERSION} task graph");
+            println!("Graph: {}", graph.graph_id);
+            println!("Status: {:?}", graph.status);
+            println!("Tasks:");
+            for task in graph.nodes {
+                println!(
+                    "  - {} | {:?} | {:?}",
+                    task.task_id, task.task_type, task.status
+                );
+            }
+            println!("Dependencies:");
+            for edge in graph.edges {
+                println!(
+                    "  - {} -> {} ({})",
+                    edge.from_task_id, edge.to_task_id, edge.relation
+                );
+            }
+        }
+        Command::Reflections => {
+            println!("Onyx Brain {ONYX_VERSION} reflections");
+            for reflection in brain.reflections()? {
+                println!(
+                    "{} | {} | confidence {:.2}",
+                    reflection.session_id, reflection.goal_type, reflection.confidence
+                );
+            }
+        }
+        Command::ImproveRecipes => {
+            let report = brain.improve_recipes()?;
+            println!("Onyx Brain {ONYX_VERSION} recipe improvement");
+            println!("Recipes reviewed: {}", report.recipes_reviewed);
+            println!("Recipes improved: {}", report.recipes_improved);
+            println!("Report: {}", report.report_path);
+        }
+        Command::Capabilities => {
+            let matrix = brain.capabilities()?;
+            println!("Onyx Brain {ONYX_VERSION} capabilities");
+            println!("Can:");
+            for row in matrix.can_do {
+                println!("  - {row}");
+            }
+            println!("Cannot:");
+            for row in matrix.cannot_do {
+                println!("  - {row}");
+            }
+            println!("Safety boundaries:");
+            for row in matrix.safety_boundaries {
+                println!("  - {row}");
+            }
+        }
+        Command::Trace { selector } => {
+            let trace = brain.trace(&selector)?;
+            println!("Onyx Brain {ONYX_VERSION} execution trace");
+            println!("Session: {}", trace.session_id);
+            println!("Goal: {}", trace.goal);
+            for event in trace.events {
+                println!(
+                    "{} | {} | {} | {} | {}",
+                    event.timestamp, event.phase, event.action, event.status, event.output_summary
+                );
+            }
+        }
+        Command::AutonomyHistory => {
+            let history = brain.autonomy_history()?;
+            println!("Onyx Brain {ONYX_VERSION} autonomy history");
+            println!("Rows: {}", history.count);
+            for row in history.rows {
+                println!("  - {row}");
+            }
+        }
+        Command::CleanupAutonomy => {
+            let report = brain.cleanup_autonomy()?;
+            println!("Onyx Brain {ONYX_VERSION} autonomy cleanup");
+            println!("Temp dirs checked: {}", report.temp_dirs_checked);
+            println!("Temp files removed: {}", report.temp_files_removed);
+            println!("Report: {}", report.report_path);
+        }
+        Command::QueueRun { input } => {
+            let report = brain.queue_run(&input)?;
+            println!("Onyx Brain {ONYX_VERSION} queue run");
+            println!("Goals total: {}", report.goals_total);
+            println!("Goals completed: {}", report.goals_completed);
+            println!("Goals failed: {}", report.goals_failed);
+            println!("Safety stops: {}", report.safety_stops);
+            println!("Artifact packs created: {}", report.artifact_packs_created);
+            println!("Report: {}", report.report_path);
         }
         Command::Journal { session } => {
             println!("Onyx Brain {ONYX_VERSION} journal");
@@ -942,6 +1387,20 @@ fn main() -> Result<()> {
                 "  recovery recommendations: {}",
                 status.recovery_recommendations.join(", ")
             );
+            println!("Autonomy:");
+            println!(
+                "  autonomous sessions: {}",
+                status.autonomous_sessions_count
+            );
+            println!("  artifacts: {}", status.artifacts_count);
+            println!("  last autonomy score: {:.2}", status.last_autonomy_score);
+            println!(
+                "  last validation score: {:.2}",
+                status.last_validation_score
+            );
+            println!("  safety stops: {}", status.safety_stops_count);
+            println!("  repairs performed: {}", status.repairs_performed);
+            println!("  policy: {}", status.autonomy_policy_summary);
             println!("Environment:");
             println!(
                 "  Cloud sync path: {}",
@@ -1180,5 +1639,19 @@ impl From<MemoryTypeArg> for MemoryType {
             MemoryTypeArg::Procedural => MemoryType::Procedural,
             MemoryTypeArg::Project => MemoryType::Project,
         }
+    }
+}
+
+fn grade_from_score(score: f32) -> &'static str {
+    if score >= 0.9 {
+        "A"
+    } else if score >= 0.8 {
+        "B"
+    } else if score >= 0.7 {
+        "C"
+    } else if score >= 0.6 {
+        "D"
+    } else {
+        "F"
     }
 }

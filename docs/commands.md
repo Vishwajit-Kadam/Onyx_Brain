@@ -14,9 +14,46 @@
 - `cargo run -- project "..."`: create or modify a sandbox Rust project.
 - `cargo run -- goal "..."`: create a goal memory and execute it through the project worker.
 - `cargo run -- worker "..."`: run a bounded worker simulation.
+- `cargo run -- autonomize "..."`: run the v0.0.2 bounded autonomous worker engine.
+- `cargo run -- autonomize --level full-bounded "..."`: run without follow-up questions inside hard safety limits.
+- `cargo run -- autonomize --level review-only "Review latest artifact pack"`: review the latest pack without changing reviewed artifacts.
+- `cargo run -- autonomize --level repair-only "Repair latest artifact pack"`: repair validation/quality issues without creating unrelated deliverables.
+- `cargo run -- auto --level full-bounded "..."`: alias for `autonomize`.
+- `cargo run -- queue-run "Goal 1 || Goal 2"`: run multiple bounded goals sequentially.
 - `cargo run -- projects`: list registered projects.
 - `cargo run -- project-inspect <name>`: inspect a registered project.
 - `cargo run -- resume <goal_id>`: resume a project goal.
+
+## Autonomy And Artifacts
+
+- `cargo run -- autonomy-policy`: show hard autonomy limits.
+- `cargo run -- artifacts`: list recent generated artifacts.
+- `cargo run -- artifact-inspect latest`: inspect the latest artifact manifest and files.
+- `cargo run -- artifact-packs`: list multi-artifact packs.
+- `cargo run -- artifact-pack-inspect latest`: inspect the latest pack, dependency graph, and validation scores.
+- `cargo run -- packs`: alias for `artifact-packs`.
+- `cargo run -- pack-inspect latest`: alias for `artifact-pack-inspect latest`.
+- `cargo run -- review-artifacts latest`: run quality review on an artifact pack.
+- `cargo run -- repair-artifacts latest`: repair auto-fixable artifact issues.
+- `cargo run -- workspaces`: list autonomous workspaces.
+- `cargo run -- workspace-inspect latest`: inspect a workspace layout.
+- `cargo run -- recipes`: list reusable workflow recipes.
+- `cargo run -- recipe-inspect latest`: inspect a workflow recipe.
+- `cargo run -- autonomy-status`: show autonomy sessions, packs, quality scores, and recommendations.
+- `cargo run -- auto-status`: alias for `autonomy-status`.
+- `cargo run -- export-package latest`: copy latest pack artifacts into a clean export folder.
+- `cargo run -- export latest`: alias for `export-package latest`.
+- `cargo run -- export-inspect latest`: inspect an exported package.
+- `cargo run -- exports`: list export folders.
+- `cargo run -- session-report latest`: write and show the latest session report.
+- `cargo run -- report latest`: alias for `session-report latest`.
+- `cargo run -- task-graph latest`: inspect the latest autonomous task graph.
+- `cargo run -- reflections`: list recent autonomous reflection memories.
+- `cargo run -- improve-recipes`: strengthen workflow recipes from recent usage.
+- `cargo run -- capabilities`: show what the bounded runtime can and cannot do.
+- `cargo run -- trace latest`: show the transparent execution trace for the latest autonomous run.
+- `cargo run -- autonomy-history`: list recent autonomous sessions, grades, packs, and exports.
+- `cargo run -- cleanup-autonomy`: remove only safe workspace temp files.
 
 ## Reliability
 
@@ -56,4 +93,7 @@
 
 - `cargo run -- benchmark basic`: run a small deterministic benchmark.
 - `cargo run -- benchmark reliability`: run a reliability benchmark.
+- `cargo run -- benchmark autonomy`: run the autonomous worker benchmark.
+- `cargo run -- benchmark artifacts`: run the artifact-pack benchmark.
+- `cargo run -- benchmark advanced-autonomy`: run launch-kit, technical-report, product-spec, learning-pack, export, audit, doctor, and regression checks.
 - `cargo run -- benchmark compare`: compare benchmark history.

@@ -50,6 +50,18 @@ These systems make risky actions easier to inspect and recover. They do not make
 
 Worker mode is bounded and synchronous. It runs a small fixed number of phases and tasks, uses allowlisted tools, and writes output under `sandbox/` and `data/`.
 
+## Autonomous Worker Engine
+
+The `autonomize` command adds a bounded autonomous worker path. It uses rule-based goal understanding, phase planning, artifact generation, validation, repair, journaling, and session reporting. It completes inside the current command; there is no daemon or hidden background loop.
+
+Artifacts are written under `sandbox/artifacts/{session_id}/`. Session reports are written under `data/sessions/{session_id}/`. The engine is deterministic by default and does not use an LLM or network access.
+
+## Expanded Autonomy Layer
+
+The v0.0.2 expansion adds dependency-aware task graphs, a bounded scheduler, multi-artifact packs, workspaces, workflow recipes, report cards, self-question logs, consistency checks, claim caution notes, and reflection memories.
+
+The release-kit, documentation-pack, learning-pack, and queue-run paths reuse the same safety boundaries: no network by default, no unrestricted shell, no background worker, and sandbox/workspace-only artifact writes.
+
 ## Disk-Backed Design
 
 Generated runtime state lives under `data/`. Generated project output lives under `sandbox/`. Both are ignored by default except placeholder files.

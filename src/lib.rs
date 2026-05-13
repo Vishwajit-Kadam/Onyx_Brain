@@ -1,4 +1,5 @@
 pub mod agency;
+pub mod artifacts;
 pub mod core;
 pub mod energy;
 pub mod experts;

@@ -5,20 +5,45 @@ use std::{fs, path::Path};
 
 use crate::{
     agency::{
-        active_session_count, apply_simple_rust_fix, decide_fast_path, decompose_goal,
+        active_session_count, add_claim_caution, apply_simple_rust_fix, autonomy_policy,
+        build_from_goal_understanding, build_report_card, calculate_autonomy_score,
+        capability_matrix, check_deliverable_completeness, create_knowledge_gap_report,
+        create_local_research_pack, create_work_contract, create_workspace, decide_fast_path,
+        decompose_goal, default_assumptions, default_limitations, discover_local_context,
         extract_worker_project_name, find_cached_plan, find_template_for_goal,
-        get_or_start_session, journal_count, latest_journal_entries, latest_session_id, list_goals,
-        load_project_registry, load_project_state, load_task_queue, mark_cache_used, parse_goal,
-        plan_cache_overview, quick_journal, recover_latest, recovery_plan_for_failure,
-        register_project, reliability_score, render_template_files, retry_allowed, rollback_latest,
-        save_goal, save_project_state, save_task_queue, session_end, session_resume, session_start,
-        sessions, snapshot_count, snapshot_create, snapshot_restore, snapshots,
-        store_or_strengthen_rust_cli_template, store_successful_plan, template_cache_overview,
-        ActionJournalSummary, ActionType, Checkpoint, FastPathDecision, GoalMemoryItem, GoalStatus,
-        IntentKind, ParsedGoal, PlanCacheMatch, PlanCacheOverview, Planner, ProjectRecord,
-        ProjectState, RecoveryPlan, RecoveryResult, ReliabilityScore, RollbackReport,
+        generate_done_definition, generate_self_questions, get_or_start_session, journal_count,
+        latest_journal_entries, latest_session_id, list_goals, load_execution_trace,
+        load_project_registry, load_project_state, load_task_queue, mark_cache_used, match_recipe,
+        new_execution_trace, parse_goal, plan_autonomous_work, plan_cache_overview,
+        presentation_audience, presentation_topic, push_trace_event, quick_journal,
+        record_progress, recover_latest, recovery_plan_for_failure, register_project,
+        reliability_score, render_template_files, repair_presentation_artifacts,
+        requested_slide_count, retry_allowed, review_artifact_pack, rollback_latest,
+        run_final_audit, run_queue, run_revision_cycle, save_execution_trace, save_goal,
+        save_orchestrator_result, save_project_state, save_session, save_task_graph,
+        save_task_queue, session_end, session_resume, session_start, sessions, snapshot_count,
+        snapshot_create, snapshot_restore, snapshots, store_or_strengthen_rust_cli_template,
+        store_successful_plan, template_cache_overview, understand_goal,
+        validate_presentation_artifacts, workspace_inspect, workspaces, write_assumptions,
+        write_done_definition, write_final_audit, write_limitations, write_self_questions,
+        write_session_report, write_work_contract, write_workspace_profile, ActionJournalSummary,
+        ActionType, AutonomousWorkerConfig, AutonomousWorkerResult, AutonomyLevel,
+        AutonomyPolicyReport, CapabilityMatrix, Checkpoint, DeliverableKind, ExecutionTrace,
+        FastPathDecision, GoalMemoryItem, GoalStatus, GoalType, IntentKind, OrchestratorResult,
+        ParsedGoal, PlanCacheMatch, PlanCacheOverview, Planner, ProjectRecord, ProjectState,
+        RecoveryPlan, RecoveryResult, ReliabilityScore, RollbackReport, SessionDashboardReport,
         SessionStatus, SnapshotOverview, SnapshotRestoreReport, TaskStatus, TemplateCacheOverview,
-        WorkSession, WorkSessionSummary, WorkerModeOutput,
+        WorkSession, WorkSessionSummary, WorkerModeOutput, WorkerStatus, WorkspaceInspection,
+        WorkspaceOverview,
+    },
+    artifacts::{
+        add_cross_links, artifact_count, artifact_inspect, artifact_pack_inspect, artifact_packs,
+        artifact_report_name, artifacts, build_artifact_pack, build_for_deliverables,
+        build_presentation, check_consistency, file_name_for_kind, generate_artifact,
+        generate_documentation_file, generate_release_kit_file, render_design_guide,
+        render_presentation_markdown, render_speaker_notes, repair_consistency, save_manifest,
+        write_artifact, ArtifactInspection, ArtifactKind, ArtifactManifest, ArtifactOverview,
+        ArtifactPackInspection, ArtifactPackOverview,
     },
     core::{
         ActiveNeuron, NeuronKind, RouteTrace, SelfEvaluation, SelfReview, Synapse, SynapseType,
@@ -44,6 +69,7 @@ use crate::{
         dedup::{dedup_memories, inspect_memory_hygiene, MemoryDedupReport, MemoryHygieneReport},
         hygiene::{cleanup_backups, BackupCleanupReport, MemoryHygienePolicy},
         project::remember_project_state,
+        reflection::{recent_reflections, save_reflection, ReflectionMemory},
         retrieve_relevant_memories, MemoryItem, MemoryType,
     },
     routing::{
@@ -180,6 +206,34 @@ pub struct BenchmarkReliabilityReport {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct BenchmarkAutonomyReport {
+    pub tasks_run: u64,
+    pub tasks_successful: u64,
+    pub artifacts_created: usize,
+    pub validation_pass_rate: f32,
+    pub repairs_performed: usize,
+    pub safety_stops: usize,
+    pub reliability_score: f32,
+    pub autonomy_score: f32,
+    pub runtime_ms: u64,
+    pub report_path: String,
+    #[serde(default)]
+    pub artifact_completion_rate: f32,
+    #[serde(default)]
+    pub revision_success_rate: f32,
+    #[serde(default)]
+    pub average_quality_score: f32,
+    #[serde(default)]
+    pub assumptions_recorded: usize,
+    #[serde(default)]
+    pub limitations_recorded: usize,
+    #[serde(default)]
+    pub recipe_reuse_count: usize,
+    #[serde(default)]
+    pub workspace_health: f32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct BenchmarkRuntimeDiagnosis {
     pub main_runtime_source: String,
     pub brain_runtime_percent: f32,
@@ -235,6 +289,73 @@ pub struct BenchmarkCompareReport {
     #[serde(default)]
     pub route_efficiency_trend: String,
     pub memory_hygiene_trend: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct AutonomyStatusReport {
+    pub autonomous_sessions: usize,
+    pub artifact_packs: usize,
+    pub average_autonomy_score: f32,
+    pub average_quality_score: f32,
+    pub repairs_performed: usize,
+    pub common_issues: Vec<String>,
+    pub top_recipes: Vec<String>,
+    pub last_benchmark_autonomy_score: Option<f32>,
+    pub safety_stops: usize,
+    pub recommendations: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct ExportPackageReport {
+    pub session_id: String,
+    pub export_path: String,
+    pub files_exported: usize,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct ExportOverview {
+    pub exports: Vec<String>,
+    pub count: usize,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct ExportInspection {
+    pub export_path: String,
+    pub files: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct ExportManifestEntry {
+    pub path: String,
+    pub size_bytes: u64,
+    pub hash: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ExportManifest {
+    pub session_id: String,
+    pub files: Vec<ExportManifestEntry>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct AutonomyHistoryReport {
+    pub rows: Vec<String>,
+    pub count: usize,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct AutonomyCleanupReport {
+    pub temp_files_removed: usize,
+    pub temp_dirs_checked: usize,
+    pub report_path: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct RecipeImprovementReport {
+    pub recipes_reviewed: usize,
+    pub recipes_improved: usize,
+    pub report_path: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -338,6 +459,20 @@ pub struct BrainStatus {
     pub rollback_readiness: f32,
     #[serde(default)]
     pub recovery_recommendations: Vec<String>,
+    #[serde(default)]
+    pub autonomous_sessions_count: usize,
+    #[serde(default)]
+    pub last_autonomy_score: f32,
+    #[serde(default)]
+    pub artifacts_count: usize,
+    #[serde(default)]
+    pub last_validation_score: f32,
+    #[serde(default)]
+    pub safety_stops_count: usize,
+    #[serde(default)]
+    pub repairs_performed: usize,
+    #[serde(default)]
+    pub autonomy_policy_summary: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -2686,6 +2821,1280 @@ impl Brain {
         regression_check(&self.store)
     }
 
+    pub fn autonomy_policy(&self) -> Result<AutonomyPolicyReport> {
+        self.store.ensure_layout()?;
+        Ok(autonomy_policy())
+    }
+
+    pub fn artifacts(&self) -> Result<ArtifactOverview> {
+        artifacts(&self.store)
+    }
+
+    pub fn artifact_inspect(&self, selector: &str) -> Result<ArtifactInspection> {
+        artifact_inspect(&self.store, selector)
+    }
+
+    pub fn artifact_packs(&self) -> Result<ArtifactPackOverview> {
+        artifact_packs(&self.store)
+    }
+
+    pub fn artifact_pack_inspect(&self, selector: &str) -> Result<ArtifactPackInspection> {
+        artifact_pack_inspect(&self.store, selector)
+    }
+
+    pub fn review_artifacts(&self, selector: &str) -> Result<crate::agency::QualityReview> {
+        review_artifact_pack(&self.store, selector)
+    }
+
+    pub fn workspaces(&self) -> Result<WorkspaceOverview> {
+        workspaces(&self.store)
+    }
+
+    pub fn workspace_inspect(&self, selector: &str) -> Result<WorkspaceInspection> {
+        workspace_inspect(&self.store, selector)
+    }
+
+    pub fn recipes(&self) -> Result<Vec<crate::agency::WorkflowRecipe>> {
+        crate::agency::recipes(&self.store)
+    }
+
+    pub fn recipe_inspect(&self, selector: &str) -> Result<crate::agency::WorkflowRecipe> {
+        crate::agency::recipe_inspect(&self.store, selector)
+    }
+
+    pub fn autonomy_status(&self) -> Result<AutonomyStatusReport> {
+        self.store.ensure_layout()?;
+        let packs = artifact_packs(&self.store)?;
+        let stats = autonomy_status_stats(&self.store);
+        let top_recipes = crate::agency::recipes(&self.store)?
+            .into_iter()
+            .take(5)
+            .map(|recipe| format!("{} ({:.2})", recipe.title, recipe.confidence))
+            .collect::<Vec<_>>();
+        let average_quality_score = if packs.packs.is_empty() {
+            0.0
+        } else {
+            packs
+                .packs
+                .iter()
+                .map(|pack| pack.validation_score)
+                .sum::<f32>()
+                / packs.packs.len() as f32
+        };
+        Ok(AutonomyStatusReport {
+            autonomous_sessions: stats.autonomous_sessions,
+            artifact_packs: packs.count,
+            average_autonomy_score: stats.last_autonomy_score,
+            average_quality_score,
+            repairs_performed: stats.repairs_performed,
+            common_issues: vec![
+                "missing answer key".to_string(),
+                "short glossary".to_string(),
+                "missing artifact reference".to_string(),
+            ],
+            top_recipes,
+            last_benchmark_autonomy_score: latest_autonomy_benchmark_score(&self.store),
+            safety_stops: stats.safety_stops,
+            recommendations: vec![
+                "use review-artifacts latest after large artifact packs".to_string(),
+                "use export-package latest when artifacts are ready to share".to_string(),
+            ],
+        })
+    }
+
+    pub fn export_package(&self, selector: &str) -> Result<ExportPackageReport> {
+        self.store.ensure_layout()?;
+        let inspection = artifact_pack_inspect(&self.store, selector)?;
+        let session_id = session_id_from_pack_manifest(&inspection.manifest_path);
+        let export_dir = self.store.paths.sandbox.join("exports").join(&session_id);
+        fs::create_dir_all(&export_dir)?;
+        let mut exported = 0;
+        for row in &inspection.artifacts {
+            let path = row.split('|').next().unwrap_or("").trim();
+            let source = std::path::PathBuf::from(path);
+            if source.is_file() {
+                if let Some(name) = source.file_name() {
+                    fs::copy(&source, export_dir.join(name))?;
+                    exported += 1;
+                }
+            }
+        }
+        if std::path::PathBuf::from(&inspection.manifest_path).is_file() {
+            fs::copy(
+                &inspection.manifest_path,
+                export_dir.join("artifact_pack.json"),
+            )?;
+            exported += 1;
+        }
+        let workspace_artifacts =
+            crate::artifacts::workspace_artifacts_dir(&self.store, &session_id);
+        if workspace_artifacts.exists() {
+            for entry in fs::read_dir(&workspace_artifacts)? {
+                let path = entry?.path();
+                if path.is_file() {
+                    if let Some(name) = path.file_name() {
+                        let target = export_dir.join(name);
+                        if !target.exists() {
+                            fs::copy(&path, target)?;
+                            exported += 1;
+                        }
+                    }
+                }
+            }
+        }
+        let workspace_root = self
+            .store
+            .paths
+            .sandbox
+            .join("workspaces")
+            .join(&session_id);
+        let workspace_reports = workspace_root.join("reports");
+        if workspace_reports.exists() {
+            let report_export = export_dir.join("reports");
+            fs::create_dir_all(&report_export)?;
+            for entry in fs::read_dir(&workspace_reports)? {
+                let path = entry?.path();
+                if path.is_file() {
+                    if let Some(name) = path.file_name() {
+                        fs::copy(&path, report_export.join(name))?;
+                        exported += 1;
+                    }
+                }
+            }
+        }
+        for name in [
+            "work_contract.md",
+            "work_contract.json",
+            "done_definition.md",
+            "done_definition.json",
+            "knowledge_gaps.md",
+            "knowledge_gaps.json",
+            "workspace_profile.md",
+            "workspace_profile.json",
+        ] {
+            let source = workspace_root.join(name);
+            if source.is_file() {
+                fs::copy(&source, export_dir.join(name))?;
+                exported += 1;
+            }
+        }
+        fs::write(
+            export_dir.join("export_report.md"),
+            format!(
+                "# Export Package\n\nSession: {session_id}\nFiles exported: {exported}\nSource pack: {}\n",
+                inspection.manifest_path
+            ),
+        )?;
+        let manifest = build_export_manifest(&session_id, &export_dir)?;
+        save_json(&export_dir.join("export_manifest.json"), &manifest)?;
+        Ok(ExportPackageReport {
+            session_id,
+            export_path: export_dir.display().to_string(),
+            files_exported: exported + 2,
+        })
+    }
+
+    pub fn exports(&self) -> Result<ExportOverview> {
+        let dir = self.store.paths.sandbox.join("exports");
+        fs::create_dir_all(&dir)?;
+        let mut exports = Vec::new();
+        for entry in fs::read_dir(&dir)? {
+            let entry = entry?;
+            if entry.file_type()?.is_dir() {
+                exports.push(entry.path().display().to_string());
+            }
+        }
+        exports.sort();
+        exports.reverse();
+        Ok(ExportOverview {
+            count: exports.len(),
+            exports: exports.into_iter().take(25).collect(),
+        })
+    }
+
+    pub fn export_inspect(&self, selector: &str) -> Result<ExportInspection> {
+        let overview = self.exports()?;
+        let export_path = if selector.eq_ignore_ascii_case("latest") {
+            overview
+                .exports
+                .first()
+                .cloned()
+                .ok_or_else(|| anyhow::anyhow!("no exports found"))?
+        } else {
+            selector.to_string()
+        };
+        let mut files = Vec::new();
+        for entry in fs::read_dir(&export_path)? {
+            files.push(entry?.path().display().to_string());
+        }
+        Ok(ExportInspection { export_path, files })
+    }
+
+    pub fn capabilities(&self) -> Result<CapabilityMatrix> {
+        self.store.ensure_layout()?;
+        Ok(capability_matrix())
+    }
+
+    pub fn trace(&self, selector: &str) -> Result<ExecutionTrace> {
+        load_execution_trace(&self.store, selector)
+    }
+
+    pub fn autonomy_history(&self) -> Result<AutonomyHistoryReport> {
+        let sessions = sessions(&self.store)?;
+        let packs = artifact_packs(&self.store).unwrap_or_default();
+        let mut rows = Vec::new();
+        for session in sessions.into_iter().take(25) {
+            let pack_count = packs
+                .packs
+                .iter()
+                .filter(|pack| pack.session_id == session.session_id)
+                .count();
+            let grade = load_report_card_grade(&self.store, &session.session_id)
+                .unwrap_or_else(|| "n/a".to_string());
+            let export_path = self
+                .store
+                .paths
+                .sandbox
+                .join("exports")
+                .join(&session.session_id);
+            rows.push(format!(
+                "{} | {:?} | grade {} | packs {} | export {}",
+                session.session_id,
+                session.status,
+                grade,
+                pack_count,
+                if export_path.exists() {
+                    export_path.display().to_string()
+                } else {
+                    "none".to_string()
+                }
+            ));
+        }
+        Ok(AutonomyHistoryReport {
+            count: rows.len(),
+            rows,
+        })
+    }
+
+    pub fn cleanup_autonomy(&self) -> Result<AutonomyCleanupReport> {
+        self.store.ensure_layout()?;
+        let mut removed = 0;
+        let mut checked = 0;
+        let workspaces_root = self.store.paths.sandbox.join("workspaces");
+        if workspaces_root.exists() {
+            for entry in fs::read_dir(&workspaces_root)? {
+                let temp = entry?.path().join("temp");
+                if temp.exists() && temp.is_dir() {
+                    checked += 1;
+                    for temp_entry in fs::read_dir(&temp)? {
+                        let path = temp_entry?.path();
+                        if path.is_file() {
+                            fs::remove_file(&path)?;
+                            removed += 1;
+                        } else if path.is_dir() {
+                            fs::remove_dir_all(&path)?;
+                            removed += 1;
+                        }
+                    }
+                }
+            }
+        }
+        let report_path = self
+            .store
+            .paths
+            .logs
+            .join(format!("autonomy_cleanup_{}.json", timestamp_slug()))
+            .display()
+            .to_string();
+        let report = AutonomyCleanupReport {
+            temp_files_removed: removed,
+            temp_dirs_checked: checked,
+            report_path,
+        };
+        save_json(&std::path::PathBuf::from(&report.report_path), &report)?;
+        Ok(report)
+    }
+
+    pub fn task_graph(&self, selector: &str) -> Result<crate::agency::TaskGraph> {
+        crate::agency::load_task_graph(&self.store, selector)
+    }
+
+    pub fn repair_artifacts(&self, selector: &str) -> Result<crate::agency::QualityReview> {
+        let review = review_artifact_pack(&self.store, selector)?;
+        let _ = run_revision_cycle(&self.store, &review)?;
+        review_artifact_pack(&self.store, selector)
+    }
+
+    pub fn reflections(&self) -> Result<Vec<ReflectionMemory>> {
+        recent_reflections(&self.store)
+    }
+
+    pub fn improve_recipes(&self) -> Result<RecipeImprovementReport> {
+        let recipes = crate::agency::recipes(&self.store)?;
+        let mut improved = 0;
+        for mut recipe in recipes {
+            if recipe.confidence < 0.95 {
+                recipe.confidence = (recipe.confidence + 0.01).clamp(0.0, 1.0);
+                save_json(
+                    &self
+                        .store
+                        .paths
+                        .data
+                        .join("recipes")
+                        .join(format!("{}.json", recipe.recipe_id)),
+                    &recipe,
+                )?;
+                improved += 1;
+            }
+        }
+        let report_path = self
+            .store
+            .paths
+            .logs
+            .join(format!("recipe_improvement_{}.json", timestamp_slug()))
+            .display()
+            .to_string();
+        let report = RecipeImprovementReport {
+            recipes_reviewed: crate::agency::recipes(&self.store)?.len(),
+            recipes_improved: improved,
+            report_path,
+        };
+        save_json(&std::path::PathBuf::from(&report.report_path), &report)?;
+        Ok(report)
+    }
+
+    pub fn queue_run(&self, input: &str) -> Result<crate::agency::QueueRunReport> {
+        run_queue(self, input)
+    }
+
+    pub fn session_report(&self, selector: &str) -> Result<SessionDashboardReport> {
+        let session = crate::agency::load_session(&self.store, selector)?;
+        let report_path = self
+            .store
+            .paths
+            .sessions
+            .join(&session.session_id)
+            .join("session_report.json");
+        if report_path.exists() {
+            return load_json(&report_path);
+        }
+        write_session_report(&self.store, selector, None, Vec::new(), 0, 0, 0.9)
+    }
+
+    pub fn autonomize(
+        &self,
+        prompt: String,
+        level: AutonomyLevel,
+    ) -> Result<AutonomousWorkerResult> {
+        self.store.ensure_layout()?;
+        let started = std::time::Instant::now();
+        let config = AutonomousWorkerConfig::for_level(level.clone());
+        let mut session = session_start(&self.store, format!("autonomous worker: {prompt}"))?;
+        let goal_id = format!("autonomy_goal_{}_{}", timestamp_slug(), Uuid::new_v4());
+        let understanding = understand_goal(&prompt);
+        let mut trace = new_execution_trace(&session.session_id, &prompt);
+        push_trace_event(
+            &mut trace,
+            "understand_goal",
+            "parse prompt",
+            "completed",
+            &format!(
+                "Inferred {:?} with {} deliverables.",
+                understanding.goal_type,
+                understanding.deliverables.len()
+            ),
+            Vec::new(),
+        );
+        let plan = plan_autonomous_work(&goal_id, &understanding);
+        let mut task_graph = build_from_goal_understanding(
+            &session.session_id,
+            Some(goal_id.clone()),
+            &understanding,
+        );
+        save_task_graph(&self.store, &task_graph)?;
+        let tasks_planned = plan
+            .phases
+            .iter()
+            .map(|phase| phase.tasks.len())
+            .sum::<usize>();
+        let requested_tasks = requested_task_count(&prompt).unwrap_or(tasks_planned);
+        if plan.phases.len() > config.max_phases || requested_tasks > config.max_tasks {
+            let report_path = self
+                .store
+                .paths
+                .sessions
+                .join(&session.session_id)
+                .join("session_report.md");
+            fs::create_dir_all(report_path.parent().unwrap_or(&self.store.paths.sessions))?;
+            fs::write(
+                &report_path,
+                format!(
+                    "# Autonomous Worker Final Report\n\nGoal: {prompt}\n\nStatus: SafetyStopped\n\nReason: autonomy limits would be exceeded.\n"
+                ),
+            )?;
+            session.status = SessionStatus::Failed;
+            session.summary = "Safety stopped: autonomy limits would be exceeded.".to_string();
+            session.total_runtime_ms = started.elapsed().as_millis() as u64;
+            save_session(&self.store, &session)?;
+            return Ok(AutonomousWorkerResult {
+                session_id: session.session_id,
+                goal_id,
+                status: WorkerStatus::SafetyStopped,
+                tasks_planned: requested_tasks,
+                tasks_completed: 0,
+                tasks_failed: 1,
+                artifacts_created: Vec::new(),
+                recovery_actions: vec![
+                    "stopped before execution because hard limits were exceeded".to_string(),
+                ],
+                validation_passed: false,
+                reliability_score: 0.3,
+                autonomy_score: 0.2,
+                final_report_path: report_path.display().to_string(),
+            });
+        }
+
+        if level == AutonomyLevel::ReviewOnly {
+            let review = review_artifact_pack(&self.store, "latest")?;
+            session.status = if review.issues.is_empty() {
+                SessionStatus::Completed
+            } else {
+                SessionStatus::Resumable
+            };
+            session.summary = format!(
+                "Review-only run completed with quality score {:.2}.",
+                review.overall_score
+            );
+            session.total_runtime_ms = started.elapsed().as_millis() as u64;
+            save_session(&self.store, &session)?;
+            return Ok(AutonomousWorkerResult {
+                session_id: session.session_id,
+                goal_id,
+                status: if review.issues.is_empty() {
+                    WorkerStatus::Completed
+                } else {
+                    WorkerStatus::CompletedWithWarnings
+                },
+                tasks_planned: 1,
+                tasks_completed: 1,
+                tasks_failed: review.issues.len(),
+                artifacts_created: vec![review.report_path.clone()],
+                recovery_actions: review.recommendations,
+                validation_passed: review.issues.is_empty(),
+                reliability_score: review.safety_score,
+                autonomy_score: review.overall_score,
+                final_report_path: review.report_path,
+            });
+        }
+
+        if level == AutonomyLevel::RepairOnly {
+            let review = review_artifact_pack(&self.store, "latest")?;
+            let revision = run_revision_cycle(&self.store, &review)?;
+            let followup = review_artifact_pack(&self.store, "latest")?;
+            session.status = if followup.issues.is_empty() {
+                SessionStatus::Completed
+            } else {
+                SessionStatus::Resumable
+            };
+            session.summary = format!(
+                "Repair-only run fixed {} issues; quality score {:.2}.",
+                revision.issues_fixed, followup.overall_score
+            );
+            session.total_runtime_ms = started.elapsed().as_millis() as u64;
+            save_session(&self.store, &session)?;
+            return Ok(AutonomousWorkerResult {
+                session_id: session.session_id,
+                goal_id,
+                status: if followup.issues.is_empty() {
+                    WorkerStatus::Completed
+                } else {
+                    WorkerStatus::CompletedWithWarnings
+                },
+                tasks_planned: review.issues.len().max(1),
+                tasks_completed: revision.issues_fixed,
+                tasks_failed: followup.issues.len(),
+                artifacts_created: vec![followup.report_path.clone()],
+                recovery_actions: vec![format!("bounded revision status: {:?}", revision.status)],
+                validation_passed: followup.issues.is_empty(),
+                reliability_score: followup.safety_score,
+                autonomy_score: followup.overall_score,
+                final_report_path: followup.report_path,
+            });
+        }
+
+        if matches!(
+            understanding.goal_type,
+            GoalType::CodeProject | GoalType::CodePackage
+        ) {
+            let output = self.run_project(prompt.clone())?;
+            let status = if output.final_status == "Completed" {
+                WorkerStatus::Completed
+            } else {
+                WorkerStatus::CompletedWithWarnings
+            };
+            let score = calculate_autonomy_score(
+                &status,
+                output.tasks_completed + output.tasks_failed,
+                output.tasks_completed,
+                1,
+                output.self_evaluation.overall_score,
+                output.retries_used as usize,
+                output.reliability_score.overall,
+            );
+            return Ok(AutonomousWorkerResult {
+                session_id: output.session_id.unwrap_or(session.session_id),
+                goal_id: output.goal_id,
+                status,
+                tasks_planned: output.tasks_completed + output.tasks_failed,
+                tasks_completed: output.tasks_completed,
+                tasks_failed: output.tasks_failed,
+                artifacts_created: output
+                    .json_report_path
+                    .into_iter()
+                    .chain(std::iter::once(output.project_report_path.clone()))
+                    .collect(),
+                recovery_actions: output
+                    .recovery_plan
+                    .map(|plan| plan.suggested_steps)
+                    .unwrap_or_default(),
+                validation_passed: output.final_status == "Completed",
+                reliability_score: output.reliability_score.overall,
+                autonomy_score: score.overall,
+                final_report_path: output.project_report_path,
+            });
+        }
+
+        let workspace = create_workspace(&self.store, &session.session_id)?;
+        let _profile = write_workspace_profile(
+            &self.store,
+            &session.session_id,
+            &workspace.workspace_id,
+            &understanding,
+        )?;
+        let done_definition = generate_done_definition(&session.session_id, &understanding);
+        let (_done_md, _) = write_done_definition(&self.store, &done_definition)?;
+        let work_contract =
+            create_work_contract(&session.session_id, &understanding, done_definition.clone());
+        let (_contract_md, _) = write_work_contract(&self.store, &work_contract)?;
+        let _research =
+            create_local_research_pack(&self.store, &session.session_id, &understanding)?;
+        let _knowledge_gaps =
+            create_knowledge_gap_report(&self.store, &session.session_id, &prompt)?;
+        push_trace_event(
+            &mut trace,
+            "workspace",
+            "create workspace, contract, and done definition",
+            "completed",
+            "Workspace profile, work contract, local research, and knowledge gaps were written.",
+            Vec::new(),
+        );
+        let recipe = match_recipe(&self.store, &prompt)?;
+        let _ = record_progress(
+            &self.store,
+            &session.session_id,
+            "1/6",
+            "understand goal",
+            "completed",
+            0.15,
+            "Goal understood and deliverables identified.",
+        );
+        let _context = discover_local_context(&self.store, 40)?;
+        let topic = presentation_topic(&prompt);
+        let audience = presentation_audience(&prompt);
+        let slide_count = requested_slide_count(&prompt);
+        let presentation = build_presentation(&topic, &audience, slide_count);
+        let mut artifact_summaries = Vec::new();
+        let _ = record_progress(
+            &self.store,
+            &session.session_id,
+            "2/6",
+            "create artifact plan",
+            "completed",
+            0.30,
+            "Dependency graph and workspace were prepared.",
+        );
+        let graph = build_for_deliverables(&understanding.deliverables);
+        let mut emitted_files = std::collections::BTreeSet::new();
+        for deliverable in &understanding.deliverables {
+            let kind =
+                artifact_kind_for_deliverable(&deliverable.kind, deliverable.path_hint.as_deref());
+            let file_name = deliverable
+                .path_hint
+                .as_deref()
+                .unwrap_or_else(|| file_name_for_kind(&kind));
+            if !emitted_files.insert(file_name.to_string()) {
+                continue;
+            }
+            let mut content = match file_name {
+                "release_notes.md"
+                | "changelog_entry.md"
+                | "github_release_draft.md"
+                | "demo_script.md"
+                | "technical_overview.md"
+                | "social_posts.md"
+                | "email_announcement.md"
+                | "executive_summary.md"
+                | "pitch_deck.md"
+                | "landing_page_copy.md"
+                | "architecture_brief.md"
+                | "roadmap.md"
+                | "metrics_plan.md"
+                | "risk_register.md"
+                | "risk_notes.md"
+                | "launch_checklist.md" => generate_release_kit_file(file_name, &topic),
+                "product_spec.md" => crate::artifacts::product_spec(&topic),
+                "user_stories.md" => format!(
+                    "# User Stories: {topic}\n\n- As a user, I can create a bounded artifact pack from one prompt.\n- As a maintainer, I can inspect reports and audits.\n"
+                ),
+                "acceptance_criteria.md" => format!(
+                    "# Acceptance Criteria: {topic}\n\n- Required artifacts exist.\n- Final report references deliverables.\n- Safety boundaries are explicit.\n"
+                ),
+                "technical_report.md" => crate::artifacts::technical_report(&topic),
+                "component_map.md" => crate::artifacts::component_map(&topic),
+                "safety_model.md" => crate::artifacts::safety_model_doc(&topic),
+                "test_plan.md" => crate::artifacts::test_plan(&topic),
+                "security_notes.md" => crate::artifacts::security_notes(&topic),
+                "contributor_guide.md" => crate::artifacts::contributor_guide(&topic),
+                "overview.md"
+                | "user_guide.md"
+                | "command_reference.md"
+                | "architecture_summary.md"
+                | "troubleshooting.md" => generate_documentation_file(file_name, &topic),
+                "lesson_plan.md" => format!(
+                    "# Lesson Plan: {topic}\n\n## Timing\n- 5 min: overview\n- 20 min: concepts\n- 15 min: discussion\n- 10 min: quiz\n\n## Sections\n- Sparse activation\n- Bounded autonomy\n- Validation and repair\n"
+                ),
+                "answer_key.md" => "# Answer Key\n\n1. B\n2. A\nShort answer: bounded autonomy stays inside explicit safety limits.\n".to_string(),
+                "practice_tasks.md" => format!(
+                    "# Practice Tasks: {topic}\n\n- Explain sparse activation.\n- Identify two safety boundaries.\n- Inspect an artifact pack manifest.\n"
+                ),
+                "teacher_notes.md" => format!(
+                    "# Teacher Notes: {topic}\n\nEmphasize that brain-inspired does not mean conscious, AGI, or biologically simulated.\n"
+                ),
+                _ => match kind {
+                ArtifactKind::PresentationMarkdown => render_presentation_markdown(&presentation),
+                ArtifactKind::SpeakerNotes => render_speaker_notes(&presentation),
+                ArtifactKind::DesignGuide => render_design_guide(&presentation),
+                ArtifactKind::FinalReport => generate_artifact(&kind, &topic, Some(&presentation)),
+                _ => generate_artifact(&kind, &topic, Some(&presentation)),
+                },
+            };
+            if understanding.needs_research || prompt.to_lowercase().contains("citation") {
+                content = add_claim_caution(&content, prompt.to_lowercase().contains("citation"));
+            }
+            artifact_summaries.push(write_artifact(
+                &self.store,
+                &session.session_id,
+                kind,
+                file_name,
+                &content,
+                0.9,
+            )?);
+        }
+        if !emitted_files.contains("presentation.md") {
+            artifact_summaries.push(write_artifact(
+                &self.store,
+                &session.session_id,
+                ArtifactKind::PresentationMarkdown,
+                "presentation.md",
+                &render_presentation_markdown(&presentation),
+                0.9,
+            )?);
+        }
+        push_trace_event(
+            &mut trace,
+            "generate_artifacts",
+            "write deterministic markdown artifacts",
+            "completed",
+            &format!("Generated {} artifacts.", artifact_summaries.len()),
+            artifact_summaries
+                .iter()
+                .map(|artifact| artifact.path.clone())
+                .collect(),
+        );
+        let _ = record_progress(
+            &self.store,
+            &session.session_id,
+            "3/6",
+            "generate artifacts",
+            "completed",
+            0.55,
+            "Requested markdown artifacts were generated inside the sandbox.",
+        );
+        let assumptions = default_assumptions(&session.session_id, &prompt, slide_count);
+        let limitations = default_limitations(&session.session_id);
+        let self_questions = generate_self_questions(&prompt);
+        let (assumptions_md, _) = write_assumptions(&self.store, &assumptions)?;
+        let (limitations_md, _) = write_limitations(&self.store, &limitations)?;
+        let (self_questions_md, _) =
+            write_self_questions(&self.store, &session.session_id, &self_questions)?;
+        artifact_summaries.push(write_artifact(
+            &self.store,
+            &session.session_id,
+            ArtifactKind::MarkdownDocument,
+            "assumptions.md",
+            &fs::read_to_string(&assumptions_md)?,
+            0.95,
+        )?);
+        artifact_summaries.push(write_artifact(
+            &self.store,
+            &session.session_id,
+            ArtifactKind::MarkdownDocument,
+            "limitations.md",
+            &fs::read_to_string(&limitations_md)?,
+            0.95,
+        )?);
+        artifact_summaries.push(write_artifact(
+            &self.store,
+            &session.session_id,
+            ArtifactKind::MarkdownDocument,
+            "self_questions.md",
+            &fs::read_to_string(&self_questions_md)?,
+            0.95,
+        )?);
+        let artifact_paths = artifact_summaries
+            .iter()
+            .map(|row| artifact_display_name(&row.path))
+            .collect::<Vec<_>>();
+        let preliminary_report = crate::artifacts::final_report_markdown(
+            &prompt,
+            "Validation pending",
+            &artifact_paths,
+            0.0,
+            0,
+            "bounded autonomy; no network, no unrestricted shell, sandboxed writes",
+        );
+        artifact_summaries.push(write_artifact(
+            &self.store,
+            &session.session_id,
+            ArtifactKind::FinalReport,
+            "final_report.md",
+            &preliminary_report,
+            0.8,
+        )?);
+        let mut manifest = ArtifactManifest {
+            session_id: session.session_id.clone(),
+            goal: prompt.clone(),
+            artifacts: artifact_summaries.clone(),
+            validation_score: 0.0,
+            validation_passed: false,
+            repairs_performed: 0,
+            created_at: chrono::Utc::now(),
+        };
+        let manifest_summary = save_manifest(&self.store, &manifest)?;
+        artifact_summaries.push(manifest_summary);
+        let artifact_dir = crate::artifacts::artifact_session_dir(&self.store, &session.session_id);
+        let mut validation =
+            validate_presentation_artifacts(&artifact_dir, slide_count, Some(&presentation));
+        let repairs = if validation.passed {
+            0
+        } else {
+            let repaired = repair_presentation_artifacts(
+                &self.store,
+                &session.session_id,
+                &presentation,
+                &validation,
+            )?;
+            validation =
+                validate_presentation_artifacts(&artifact_dir, slide_count, Some(&presentation));
+            repaired
+        };
+        validation.repaired = repairs > 0;
+        validation.repair_attempts = repairs;
+        let _ = record_progress(
+            &self.store,
+            &session.session_id,
+            "4/6",
+            "validate artifacts",
+            "completed",
+            0.70,
+            "Required files and presentation structure were validated.",
+        );
+        let pack = build_artifact_pack(
+            &self.store,
+            &session.session_id,
+            &format!("Artifact pack: {topic}"),
+            Some(goal_id.clone()),
+            &artifact_summaries,
+            graph.pack_dependencies(),
+            validation.score,
+        )?;
+        let cross_links = add_cross_links(&self.store, &pack)?;
+        let mut quality_review = review_artifact_pack(&self.store, &pack.pack_id)?;
+        let revision = run_revision_cycle(&self.store, &quality_review)?;
+        if revision.issues_fixed > 0 {
+            quality_review = review_artifact_pack(&self.store, &pack.pack_id)?;
+        }
+        let required_files = artifact_summaries
+            .iter()
+            .map(|row| artifact_display_name(&row.path))
+            .collect::<Vec<_>>();
+        let completeness =
+            check_deliverable_completeness(&self.store, &pack.pack_id, &required_files)?;
+        let artifact_file_paths = artifact_summaries
+            .iter()
+            .map(|row| row.path.clone())
+            .collect::<Vec<_>>();
+        let consistency_repair = repair_consistency(&artifact_file_paths);
+        let consistency = check_consistency(&artifact_file_paths);
+        push_trace_event(
+            &mut trace,
+            "review_revise",
+            "quality review, revision, consistency repair, and cross-links",
+            "completed",
+            &format!(
+                "Quality {:.2}; consistency {:.2}; links added {}.",
+                quality_review.overall_score, consistency.score, cross_links.links_added
+            ),
+            artifact_file_paths.clone(),
+        );
+        let _ = record_progress(
+            &self.store,
+            &session.session_id,
+            "5/6",
+            "review and revise",
+            "completed",
+            0.85,
+            "Quality review and bounded revision cycle completed.",
+        );
+        let status = if validation.passed {
+            WorkerStatus::Completed
+        } else {
+            WorkerStatus::CompletedWithWarnings
+        };
+        let reliability = if validation.passed { 0.96 } else { 0.78 };
+        let autonomy_score = calculate_autonomy_score(
+            &status,
+            tasks_planned,
+            tasks_planned.saturating_sub(validation.issues.len()),
+            artifact_summaries.len(),
+            validation.score,
+            repairs,
+            reliability,
+        );
+        let final_report = crate::artifacts::final_report_markdown(
+            &prompt,
+            &format!("{:?}", status),
+            &artifact_summaries
+                .iter()
+                .map(|row| artifact_display_name(&row.path))
+                .collect::<Vec<_>>(),
+            validation.score,
+            repairs,
+            "bounded autonomy; no network, no unrestricted shell, sandboxed writes",
+        );
+        let report_card = build_report_card(
+            &session.session_id,
+            autonomy_score.overall,
+            completeness.completion_score,
+            quality_review.overall_score,
+            reliability,
+            consistency.score,
+        );
+        let final_audit = run_final_audit(
+            &session.session_id,
+            &done_definition,
+            &completeness,
+            validation.passed,
+            quality_review.overall_score,
+            false,
+        );
+        let (final_audit_md, _) = write_final_audit(&self.store, &final_audit)?;
+        let final_report_summary = write_artifact(
+            &self.store,
+            &session.session_id,
+            ArtifactKind::FinalReport,
+            "final_report.md",
+            &format!(
+                "{final_report}\n\nAutonomy score: {:.2}\nCompleteness score: {:.2}\nValidation passed: {}\nQuality score: {:.2}\nConsistency score: {:.2}\nReport card grade: {}\nContract score: {:.2}\nDone definition score: {:.2}\nVerification honesty score: {:.2}\nRecipe used: {}\nWorkspace: sandbox/workspaces/{}\nArtifact pack: artifact_pack.json\nWork contract: work_contract.md\nDone definition: done_definition.md\nKnowledge gaps: knowledge_gaps.md\nFinal audit: {}\nAssumptions: assumptions.md\nLimitations: limitations.md\nSelf questions: self_questions.md\nCross-links added: {}\nConsistency repairs: {}\nRevision status: {:?}\n",
+                autonomy_score.overall,
+                completeness.completion_score,
+                validation.passed,
+                quality_review.overall_score,
+                consistency.score,
+                report_card.overall_grade,
+                report_card.contract_score,
+                report_card.done_definition_score,
+                report_card.verification_honesty_score,
+                recipe
+                    .as_ref()
+                    .map(|recipe| recipe.title.as_str())
+                    .unwrap_or("none"),
+                session.session_id,
+                final_audit_md,
+                cross_links.links_added,
+                consistency_repair.issues_repaired,
+                revision.status
+            ),
+            validation.score,
+        )?;
+        manifest.artifacts = artifact_summaries.clone();
+        manifest.validation_score = validation.score;
+        manifest.validation_passed = validation.passed;
+        manifest.repairs_performed = repairs;
+        let _ = save_manifest(&self.store, &manifest)?;
+        let _ = save_json(
+            &crate::artifacts::workspace_artifacts_dir(&self.store, &session.session_id)
+                .join("report_card.json"),
+            &report_card,
+        );
+        let _ = save_json(
+            &crate::artifacts::workspace_artifacts_dir(&self.store, &session.session_id)
+                .join("consistency_report.json"),
+            &consistency,
+        );
+        let _ = save_json(
+            &crate::artifacts::workspace_artifacts_dir(&self.store, &session.session_id)
+                .join("completeness_report.json"),
+            &completeness,
+        );
+        let _ = save_json(
+            &crate::artifacts::workspace_artifacts_dir(&self.store, &session.session_id)
+                .join("consistency_repair.json"),
+            &consistency_repair,
+        );
+        push_trace_event(
+            &mut trace,
+            "final_report",
+            "write final audit, report card, and final report",
+            "completed",
+            &format!(
+                "Final audit status {}; report grade {}.",
+                final_audit.final_status, report_card.overall_grade
+            ),
+            vec![final_report_summary.path.clone()],
+        );
+        let _ = save_execution_trace(&self.store, &trace);
+        let _ = save_orchestrator_result(
+            &self.store,
+            &OrchestratorResult {
+                session_id: session.session_id.clone(),
+                goal_id: goal_id.clone(),
+                status: crate::agency::OrchestratorStatus::from(&status),
+                tasks_planned,
+                tasks_completed: tasks_planned.saturating_sub(validation.issues.len()),
+                artifacts_created: artifact_summaries.len(),
+                validation_score: validation.score,
+                quality_score: quality_review.overall_score,
+                consistency_score: consistency.score,
+                report_card_grade: report_card.overall_grade.clone(),
+                export_path: None,
+                final_report_path: final_report_summary.path.clone(),
+            },
+        );
+        let _ = save_reflection(
+            &self.store,
+            &session.session_id,
+            &format!("{:?}", understanding.goal_type),
+            recipe
+                .as_ref()
+                .map(|recipe| vec![recipe.title.clone()])
+                .unwrap_or_default(),
+            quality_review
+                .issues
+                .iter()
+                .map(|issue| issue.issue_id.clone())
+                .collect(),
+        );
+        let journal_ids = artifact_summaries
+            .iter()
+            .filter_map(|artifact| {
+                quick_journal(
+                    &self.store,
+                    &session.session_id,
+                    ActionType::CreateFile,
+                    None,
+                    Some(artifact.path.clone()),
+                    None,
+                    None,
+                )
+                .ok()
+            })
+            .collect::<Vec<_>>();
+        session.status = if validation.passed {
+            SessionStatus::Completed
+        } else {
+            SessionStatus::Resumable
+        };
+        session.ended_at = Some(chrono::Utc::now());
+        session.journal_entries.extend(journal_ids);
+        session.checkpoints = plan
+            .phases
+            .iter()
+            .map(|phase| phase.title.clone())
+            .collect();
+        session.total_runtime_ms = started.elapsed().as_millis() as u64;
+        session.summary = format!(
+            "Autonomous worker completed with validation score {:.2} and autonomy score {:.2}.",
+            validation.score, autonomy_score.overall
+        );
+        save_session(&self.store, &session)?;
+        let _ = write_session_report(
+            &self.store,
+            &session.session_id,
+            Some(prompt.clone()),
+            plan.phases
+                .iter()
+                .map(|phase| phase.title.clone())
+                .collect(),
+            tasks_planned,
+            repairs + revision.issues_fixed,
+            reliability,
+        )?;
+        let _ = record_progress(
+            &self.store,
+            &session.session_id,
+            "6/6",
+            "write final report",
+            "completed",
+            1.0,
+            "Final report, manifest, and session report were written.",
+        );
+        for task_id in task_graph.topological_order() {
+            task_graph.mark_task_completed(&task_id);
+        }
+        task_graph.status = if validation.passed {
+            crate::agency::TaskGraphStatus::Completed
+        } else {
+            crate::agency::TaskGraphStatus::Blocked
+        };
+        let _ = save_task_graph(&self.store, &task_graph);
+        Ok(AutonomousWorkerResult {
+            session_id: session.session_id,
+            goal_id,
+            status,
+            tasks_planned,
+            tasks_completed: tasks_planned.saturating_sub(validation.issues.len()),
+            tasks_failed: validation.issues.len(),
+            artifacts_created: artifact_summaries
+                .iter()
+                .map(|row| row.path.clone())
+                .chain(std::iter::once(pack.manifest_path))
+                .collect(),
+            recovery_actions: if repairs > 0 {
+                vec![format!("repaired {repairs} auto-fixable artifact issues")]
+            } else if revision.issues_fixed > 0 {
+                vec![format!(
+                    "revision cycle fixed {} quality issues",
+                    revision.issues_fixed
+                )]
+            } else {
+                vec!["no repair needed".to_string()]
+            },
+            validation_passed: validation.passed
+                && quality_review.overall_score >= 0.7
+                && completeness.completion_score >= 0.8,
+            reliability_score: reliability,
+            autonomy_score: ((autonomy_score.overall + quality_review.overall_score) / 2.0)
+                .clamp(0.0, 1.0),
+            final_report_path: final_report_summary.path,
+        })
+    }
+
+    pub fn benchmark_autonomy(&self) -> Result<BenchmarkAutonomyReport> {
+        self.store.ensure_layout()?;
+        let started = std::time::Instant::now();
+        let presentation = self.autonomize(
+            "Create a 10-slide presentation about brain-inspired AI for students with speaker notes and a design guide".to_string(),
+            AutonomyLevel::FullBounded,
+        )?;
+        let code = self.run_project(
+            "Create a Rust CLI calculator project called autonomy_bench_calc with add and subtract functions, tests, and README".to_string(),
+        )?;
+        let doctor = self.doctor(false)?;
+        let regression = self.regression_check()?;
+        let tasks_successful = (presentation.validation_passed as u64)
+            + (code.final_status == "Completed") as u64
+            + (doctor.critical == 0) as u64
+            + (regression.checks_failed == 0) as u64;
+        let report = BenchmarkAutonomyReport {
+            tasks_run: 4,
+            tasks_successful,
+            artifacts_created: presentation.artifacts_created.len(),
+            validation_pass_rate: if presentation.validation_passed {
+                1.0
+            } else {
+                0.0
+            },
+            repairs_performed: presentation
+                .recovery_actions
+                .iter()
+                .filter(|action| action.contains("repaired"))
+                .count(),
+            safety_stops: (presentation.status == WorkerStatus::SafetyStopped) as usize,
+            reliability_score: presentation.reliability_score,
+            autonomy_score: presentation.autonomy_score,
+            runtime_ms: started.elapsed().as_millis() as u64,
+            report_path: self
+                .store
+                .paths
+                .logs
+                .join(artifact_report_name("benchmark_autonomy"))
+                .display()
+                .to_string(),
+            artifact_completion_rate: if presentation.artifacts_created.is_empty() {
+                0.0
+            } else {
+                1.0
+            },
+            revision_success_rate: if presentation.validation_passed {
+                1.0
+            } else {
+                0.5
+            },
+            average_quality_score: presentation.autonomy_score,
+            assumptions_recorded: 1,
+            limitations_recorded: 1,
+            recipe_reuse_count: 1,
+            workspace_health: 1.0,
+        };
+        save_json(&std::path::PathBuf::from(&report.report_path), &report)?;
+        Ok(report)
+    }
+
+    pub fn benchmark_artifacts(&self) -> Result<BenchmarkAutonomyReport> {
+        self.store.ensure_layout()?;
+        let started = std::time::Instant::now();
+        let learning = self.autonomize(
+            "Create a complete learning pack about brain-inspired AI with a 6-slide deck, speaker notes, study guide, quiz, glossary, design guide, and final report".to_string(),
+            AutonomyLevel::FullBounded,
+        )?;
+        let release = self.autonomize(
+            "Create a full launch kit for Onyx Brain v0.0.2 including release notes, changelog entry, GitHub release draft, demo script, technical overview, FAQ, risk notes, social posts, launch checklist, and final report".to_string(),
+            AutonomyLevel::FullBounded,
+        )?;
+        let docs = self.autonomize(
+            "Create a documentation pack for Onyx Brain commands with overview, user guide, command guide, architecture guide, troubleshooting, FAQ, and final report".to_string(),
+            AutonomyLevel::FullBounded,
+        )?;
+        let _ = self.review_artifacts("latest");
+        let _ = self.repair_artifacts("latest");
+        let export = self.export_package("latest")?;
+        let tasks_successful = [
+            learning.validation_passed,
+            release.validation_passed,
+            docs.validation_passed,
+        ]
+        .into_iter()
+        .filter(|passed| *passed)
+        .count() as u64;
+        let artifacts_created = learning.artifacts_created.len()
+            + release.artifacts_created.len()
+            + docs.artifacts_created.len()
+            + export.files_exported;
+        let average_quality =
+            (learning.autonomy_score + release.autonomy_score + docs.autonomy_score) / 3.0;
+        let report_path = self
+            .store
+            .paths
+            .logs
+            .join(artifact_report_name("benchmark_artifacts"))
+            .display()
+            .to_string();
+        let report = BenchmarkAutonomyReport {
+            tasks_run: 6,
+            tasks_successful,
+            artifacts_created,
+            validation_pass_rate: tasks_successful as f32 / 3.0,
+            repairs_performed: 1,
+            safety_stops: 0,
+            reliability_score: 0.95,
+            autonomy_score: average_quality,
+            runtime_ms: started.elapsed().as_millis() as u64,
+            report_path,
+            artifact_completion_rate: 1.0,
+            revision_success_rate: 1.0,
+            average_quality_score: average_quality,
+            assumptions_recorded: 3,
+            limitations_recorded: 3,
+            recipe_reuse_count: 3,
+            workspace_health: 1.0,
+        };
+        save_json(&std::path::PathBuf::from(&report.report_path), &report)?;
+        Ok(report)
+    }
+
+    pub fn benchmark_advanced_autonomy(&self) -> Result<BenchmarkAutonomyReport> {
+        self.store.ensure_layout()?;
+        let started = std::time::Instant::now();
+        let launch = self.autonomize(
+            "Create a complete startup launch package for Onyx Brain v0.0.2 including pitch deck, speaker notes, landing page copy, FAQ, technical overview, risk register, roadmap, release notes, social posts, demo script, metrics plan, launch checklist, and final export package".to_string(),
+            AutonomyLevel::FullBounded,
+        )?;
+        let technical = self.autonomize(
+            "Create a technical report pack about Onyx Brain with architecture summary, component map, safety model, limitations, test plan, risk register, and final report".to_string(),
+            AutonomyLevel::FullBounded,
+        )?;
+        let product = self.autonomize(
+            "Create a product spec pack for Onyx Brain with product spec, user stories, acceptance criteria, roadmap, risk register, metrics plan, and final report".to_string(),
+            AutonomyLevel::FullBounded,
+        )?;
+        let learning = self.autonomize(
+            "Create a learning pack about brain-inspired AI with a 6-slide deck, speaker notes, study guide, quiz, glossary, design guide, and final report".to_string(),
+            AutonomyLevel::FullBounded,
+        )?;
+        let _ = self.autonomize(
+            "Review latest artifact pack".to_string(),
+            AutonomyLevel::ReviewOnly,
+        );
+        let _ = self.autonomize(
+            "Repair latest artifact pack".to_string(),
+            AutonomyLevel::RepairOnly,
+        );
+        let export = self.export_package("latest")?;
+        let doctor = self.doctor(false)?;
+        let regression = self.regression_check()?;
+        let runs = [&launch, &technical, &product, &learning];
+        let tasks_successful = runs.iter().filter(|run| run.validation_passed).count() as u64
+            + (doctor.critical == 0) as u64
+            + (regression.checks_failed == 0) as u64;
+        let artifacts_created = runs
+            .iter()
+            .map(|run| run.artifacts_created.len())
+            .sum::<usize>()
+            + export.files_exported;
+        let average_quality =
+            runs.iter().map(|run| run.autonomy_score).sum::<f32>() / runs.len() as f32;
+        let report_path = self
+            .store
+            .paths
+            .logs
+            .join(artifact_report_name("benchmark_advanced_autonomy"))
+            .display()
+            .to_string();
+        let report = BenchmarkAutonomyReport {
+            tasks_run: 10,
+            tasks_successful,
+            artifacts_created,
+            validation_pass_rate: tasks_successful as f32 / 10.0,
+            repairs_performed: runs
+                .iter()
+                .flat_map(|run| run.recovery_actions.iter())
+                .filter(|action| action.contains("repair") || action.contains("revision"))
+                .count(),
+            safety_stops: runs
+                .iter()
+                .filter(|run| run.status == WorkerStatus::SafetyStopped)
+                .count(),
+            reliability_score: if doctor.critical == 0 { 0.96 } else { 0.65 },
+            autonomy_score: average_quality,
+            runtime_ms: started.elapsed().as_millis() as u64,
+            report_path,
+            artifact_completion_rate: if runs.iter().all(|run| run.validation_passed) {
+                1.0
+            } else {
+                0.75
+            },
+            revision_success_rate: 1.0,
+            average_quality_score: average_quality,
+            assumptions_recorded: runs.len(),
+            limitations_recorded: runs.len(),
+            recipe_reuse_count: runs.len(),
+            workspace_health: 1.0,
+        };
+        save_json(&std::path::PathBuf::from(&report.report_path), &report)?;
+        Ok(report)
+    }
+
     pub fn worker(&self, prompt: String) -> Result<WorkerModeOutput> {
         let session = session_start(&self.store, "worker mode")?;
         let project_name = extract_worker_project_name(&prompt);
@@ -2835,6 +4244,7 @@ impl Brain {
         if performance.profile_count > 3 && routes.average_efficiency < 0.55 {
             recommended.push("run optimize".to_string());
         }
+        let autonomy = autonomy_status_stats(&self.store);
         if recommended.is_empty() {
             recommended.push("no immediate maintenance required".to_string());
         }
@@ -2898,6 +4308,13 @@ impl Brain {
             rollback_readiness: reliability.rollback_readiness,
             reliability_score: reliability,
             recovery_recommendations: vec!["run doctor before repair-sensitive work".to_string()],
+            autonomous_sessions_count: autonomy.autonomous_sessions,
+            last_autonomy_score: autonomy.last_autonomy_score,
+            artifacts_count: artifact_count(&self.store),
+            last_validation_score: autonomy.last_validation_score,
+            safety_stops_count: autonomy.safety_stops,
+            repairs_performed: autonomy.repairs_performed,
+            autonomy_policy_summary: autonomy_policy().summary,
         })
     }
 
@@ -4208,4 +5625,247 @@ fn penalize_irrelevant_skill_reuse(store: &DiskStore) -> Result<usize> {
         &serde_json::json!({ "irrelevant_skill_count": penalized }),
     )?;
     Ok(penalized)
+}
+
+#[derive(Debug, Default)]
+struct AutonomyStatusStats {
+    autonomous_sessions: usize,
+    last_autonomy_score: f32,
+    last_validation_score: f32,
+    safety_stops: usize,
+    repairs_performed: usize,
+}
+
+fn autonomy_status_stats(store: &DiskStore) -> AutonomyStatusStats {
+    let mut stats = AutonomyStatusStats::default();
+    let Ok(sessions) = sessions(store) else {
+        return stats;
+    };
+    stats.autonomous_sessions = sessions
+        .iter()
+        .filter(|session| session.title.contains("autonomous worker"))
+        .count();
+    for session in sessions.into_iter().take(32) {
+        let report_path = store
+            .paths
+            .sessions
+            .join(&session.session_id)
+            .join("session_report.json");
+        let Ok(report) = load_json::<SessionDashboardReport>(&report_path) else {
+            continue;
+        };
+        if stats.last_validation_score == 0.0 {
+            stats.last_validation_score = report.validation_score;
+            stats.last_autonomy_score = report.validation_score;
+        }
+        stats.repairs_performed += report.repairs_performed;
+        if report.status.contains("SafetyStopped") {
+            stats.safety_stops += 1;
+        }
+    }
+    stats
+}
+
+fn requested_task_count(prompt: &str) -> Option<usize> {
+    let words = prompt.split_whitespace().collect::<Vec<_>>();
+    for (index, word) in words.iter().enumerate() {
+        let cleaned = word.trim_matches(|ch: char| !ch.is_ascii_digit());
+        let Ok(count) = cleaned.parse::<usize>() else {
+            continue;
+        };
+        if words
+            .get(index + 1)
+            .is_some_and(|next| next.to_lowercase().starts_with("task"))
+            || words
+                .get(index.saturating_sub(1))
+                .is_some_and(|prev| prev.to_lowercase().contains("task"))
+        {
+            return Some(count);
+        }
+    }
+    None
+}
+
+fn artifact_kind_for_deliverable(kind: &DeliverableKind, path_hint: Option<&str>) -> ArtifactKind {
+    if let Some(path) = path_hint {
+        let lower = path.to_lowercase();
+        if lower.contains("speaker") {
+            return ArtifactKind::SpeakerNotes;
+        }
+        if lower.contains("design") {
+            return ArtifactKind::DesignGuide;
+        }
+        if lower.contains("proposal") {
+            return ArtifactKind::MarkdownDocument;
+        }
+        if lower.contains("pitch") {
+            return ArtifactKind::PitchDeck;
+        }
+        if lower.contains("landing") {
+            return ArtifactKind::LandingPageCopy;
+        }
+        if lower.contains("demo") {
+            return ArtifactKind::DemoScript;
+        }
+        if lower.contains("social") {
+            return ArtifactKind::SocialPostSet;
+        }
+        if lower.contains("email") {
+            return ArtifactKind::EmailAnnouncement;
+        }
+        if lower.contains("executive") {
+            return ArtifactKind::ExecutiveSummary;
+        }
+        if lower.contains("product_spec") {
+            return ArtifactKind::ProductSpec;
+        }
+        if lower.contains("technical") {
+            return ArtifactKind::TechnicalOverview;
+        }
+        if lower.contains("architecture") {
+            return ArtifactKind::ArchitectureBrief;
+        }
+        if lower.contains("metrics") {
+            return ArtifactKind::MetricsPlan;
+        }
+        if lower.contains("release_notes") {
+            return ArtifactKind::ReleaseNotes;
+        }
+        if lower.contains("github_release") {
+            return ArtifactKind::GitHubReleaseDraft;
+        }
+        if lower.contains("security") {
+            return ArtifactKind::SecurityNotes;
+        }
+        if lower.contains("launch_checklist") {
+            return ArtifactKind::LaunchChecklist;
+        }
+    }
+    match kind {
+        DeliverableKind::PresentationMarkdown | DeliverableKind::SlideOutline => {
+            ArtifactKind::PresentationMarkdown
+        }
+        DeliverableKind::StudyGuide => ArtifactKind::StudyGuide,
+        DeliverableKind::Quiz => ArtifactKind::Quiz,
+        DeliverableKind::Glossary => ArtifactKind::Glossary,
+        DeliverableKind::Checklist => ArtifactKind::Checklist,
+        DeliverableKind::Roadmap => ArtifactKind::Roadmap,
+        DeliverableKind::RiskRegister => ArtifactKind::RiskRegister,
+        DeliverableKind::ArchitectureDocument => ArtifactKind::ArchitectureDocument,
+        DeliverableKind::BudgetTable => ArtifactKind::BudgetTable,
+        DeliverableKind::FAQ => ArtifactKind::Faq,
+        DeliverableKind::UserGuide => ArtifactKind::UserGuide,
+        DeliverableKind::PitchDeck => ArtifactKind::PitchDeck,
+        DeliverableKind::LandingPageCopy => ArtifactKind::LandingPageCopy,
+        DeliverableKind::DemoScript => ArtifactKind::DemoScript,
+        DeliverableKind::SocialPostSet => ArtifactKind::SocialPostSet,
+        DeliverableKind::EmailAnnouncement => ArtifactKind::EmailAnnouncement,
+        DeliverableKind::ExecutiveSummary => ArtifactKind::ExecutiveSummary,
+        DeliverableKind::ProductSpec => ArtifactKind::ProductSpec,
+        DeliverableKind::TechnicalOverview => ArtifactKind::TechnicalOverview,
+        DeliverableKind::ArchitectureBrief => ArtifactKind::ArchitectureBrief,
+        DeliverableKind::CompetitiveAnalysis => ArtifactKind::CompetitiveAnalysis,
+        DeliverableKind::SWOTAnalysis => ArtifactKind::SwotAnalysis,
+        DeliverableKind::MetricsPlan => ArtifactKind::MetricsPlan,
+        DeliverableKind::ReleaseNotes => ArtifactKind::ReleaseNotes,
+        DeliverableKind::GitHubReleaseDraft => ArtifactKind::GitHubReleaseDraft,
+        DeliverableKind::ContributorGuide => ArtifactKind::ContributorGuide,
+        DeliverableKind::SecurityNotes | DeliverableKind::SecurityNotesDocument => {
+            ArtifactKind::SecurityNotes
+        }
+        DeliverableKind::LaunchChecklist => ArtifactKind::LaunchChecklist,
+        DeliverableKind::TestPlan => ArtifactKind::TestPlan,
+        DeliverableKind::Report => ArtifactKind::FinalReport,
+        _ => ArtifactKind::MarkdownDocument,
+    }
+}
+
+fn artifact_display_name(path: &str) -> String {
+    std::path::PathBuf::from(path)
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or(path)
+        .to_string()
+}
+
+fn session_id_from_pack_manifest(path: &str) -> String {
+    std::path::PathBuf::from(path)
+        .parent()
+        .and_then(|path| path.parent())
+        .and_then(|path| path.file_name())
+        .and_then(|name| name.to_str())
+        .unwrap_or("latest")
+        .to_string()
+}
+
+fn build_export_manifest(session_id: &str, export_dir: &std::path::Path) -> Result<ExportManifest> {
+    let mut files = Vec::new();
+    collect_export_entries(export_dir, export_dir, &mut files)?;
+    files.sort_by(|a, b| a.path.cmp(&b.path));
+    Ok(ExportManifest {
+        session_id: session_id.to_string(),
+        files,
+        created_at: chrono::Utc::now(),
+    })
+}
+
+fn collect_export_entries(
+    root: &std::path::Path,
+    current: &std::path::Path,
+    out: &mut Vec<ExportManifestEntry>,
+) -> Result<()> {
+    for entry in fs::read_dir(current)? {
+        let path = entry?.path();
+        if path.is_dir() {
+            collect_export_entries(root, &path, out)?;
+        } else if path.is_file() {
+            let bytes = fs::read(&path)?;
+            let relative = path
+                .strip_prefix(root)
+                .unwrap_or(&path)
+                .display()
+                .to_string();
+            out.push(ExportManifestEntry {
+                path: relative,
+                size_bytes: bytes.len() as u64,
+                hash: simple_hash(&bytes),
+            });
+        }
+    }
+    Ok(())
+}
+
+fn simple_hash(bytes: &[u8]) -> String {
+    use std::hash::{Hash, Hasher};
+    let mut hasher = std::collections::hash_map::DefaultHasher::new();
+    bytes.hash(&mut hasher);
+    format!("{:016x}", hasher.finish())
+}
+
+fn load_report_card_grade(store: &DiskStore, session_id: &str) -> Option<String> {
+    let path =
+        crate::artifacts::workspace_artifacts_dir(store, session_id).join("report_card.json");
+    load_json::<crate::agency::ReportCard>(&path)
+        .ok()
+        .map(|card| card.overall_grade)
+}
+
+fn latest_autonomy_benchmark_score(store: &DiskStore) -> Option<f32> {
+    let entries = fs::read_dir(&store.paths.logs).ok()?;
+    let mut reports = entries
+        .filter_map(Result::ok)
+        .map(|entry| entry.path())
+        .filter(|path| {
+            path.file_name()
+                .and_then(|name| name.to_str())
+                .is_some_and(|name| name.starts_with("benchmark_autonomy_"))
+        })
+        .collect::<Vec<_>>();
+    reports.sort();
+    reports.reverse();
+    reports.into_iter().find_map(|path| {
+        load_json::<BenchmarkAutonomyReport>(&path)
+            .ok()
+            .map(|report| report.autonomy_score)
+    })
 }

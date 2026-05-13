@@ -3,6 +3,8 @@ pub mod episodic;
 pub mod hygiene;
 pub mod procedural;
 pub mod project;
+pub mod reflection;
+pub mod self_critique;
 pub mod semantic;
 pub mod working;
 

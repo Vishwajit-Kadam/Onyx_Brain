@@ -211,10 +211,10 @@ fn environment_and_summary_commands_do_not_crash() {
     assert!(report.path_has_spaces);
 
     let (_temp, brain) = temp_brain();
-    assert_eq!(brain.inspect_summary().expect("inspect").version, "v0.0.1");
+    assert_eq!(brain.inspect_summary().expect("inspect").version, "v0.0.2");
     assert_eq!(
         brain.brain_status_summary().expect("status").version,
-        "v0.0.1"
+        "v0.0.2"
     );
 }
 
