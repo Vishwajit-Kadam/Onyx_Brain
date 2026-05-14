@@ -34,6 +34,20 @@ Before risky modifications, the runtime can create snapshots. Transactional edit
 
 The doctor command checks required directories, indexes, state files, sessions, journals, and other recovery metadata. Repair mode rebuilds safe indexes and archives corrupt JSON instead of deleting it permanently.
 
+## Conversation Safety
+
+The v0.0.3 conversation layer filters unsupported self-claims, fake citations, sandbox-bypass advice, secret extraction, malware-like requests, and destructive command suggestions. Debugger mode recommends safe commands such as `cargo fmt`, `cargo check`, and `cargo test -- --nocapture`.
+
+Research-outline mode creates verification notes and citation placeholders. It does not perform web research by default and should not be treated as externally verified.
+
+## GUI, Executive, And Creative Safety
+
+The desktop GUI uses AppApi instead of direct random file mutation. It does not provide controls to disable sandboxing, command allowlists, or network-disabled-by-default behavior.
+
+The executive self-model is consciousness-inspired terminology for state inspection and orchestration. It is not real consciousness, not sentience, and not AGI.
+
+Creative studio outputs planning documents only. It must not claim actual film/video rendering, and prompts that reference protected franchises are converted into original inspiration with IP caution.
+
 ## Limitations
 
 This is experimental software. Do not use it to operate sensitive systems. Review outputs, permissions, generated code, and reports before trusting results.

@@ -1,5 +1,25 @@
 # Changelog
 
+## v0.0.4 - Executive Autonomy + Native Desktop GUI + Creative Production Studio
+
+- Replaced the old web-based GUI path with a Rust-native `eframe`/`egui` desktop GUI launched by `cargo run -- gui`.
+- Added native views for chat, autonomy, creative studio, task board, artifacts, memory, safety, system status, and settings.
+- Removed web GUI build instructions; the native release executable is `target/release/onyx_brain.exe`.
+- Added executive autonomy commands, consciousness-inspired self-model, attention state, metacognitive reports, and executive decisions.
+- Added creative production studio for cinematic planning packages.
+- Added creative, executive, and GUI smoke benchmarks.
+- Added event log, GUI assets, creative validation, and desktop build docs.
+- Preserved bounded safety framing: not conscious, not AGI, no unrestricted shell, no network by default.
+
+## v0.0.3 - Conversational Intelligence Layer
+
+- Added deterministic `chat` command with interactive and one-shot modes.
+- Added dialogue modes for debate, teaching, Socratic guidance, critique, planning, architecture, debugging, research outlines, creative work, summarization, safety review, product management, and coaching.
+- Added disk-backed conversation sessions, conversation memory summaries, transcripts, and transcript export.
+- Added personality profiles that lightly adjust wording without roleplaying consciousness or sentience.
+- Added response quality scoring, prompt library, conversation benchmark, and conversation safety filtering.
+- Extended doctor, brain-status, inspect summary, and regression checks with conversation state.
+
 ## v0.0.2 - Autonomous Worker Engine
 
 - Added `autonomize` bounded autonomous worker command.

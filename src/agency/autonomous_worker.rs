@@ -8,6 +8,8 @@ pub enum AutonomyLevel {
     FullBounded,
     ReviewOnly,
     RepairOnly,
+    Studio,
+    Executive,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]

@@ -32,6 +32,11 @@ pub struct DataPaths {
     pub transactions: PathBuf,
     pub sessions: PathBuf,
     pub recovery: PathBuf,
+    pub conversations: PathBuf,
+    pub conversation_memory: PathBuf,
+    pub config: PathBuf,
+    pub executive: PathBuf,
+    pub events: PathBuf,
     pub sandbox: PathBuf,
 }
 
@@ -55,6 +60,11 @@ impl DataPaths {
             transactions: data.join("transactions"),
             sessions: data.join("sessions"),
             recovery: data.join("recovery"),
+            conversations: data.join("conversations"),
+            conversation_memory: data.join("conversation_memory"),
+            config: data.join("config"),
+            executive: data.join("executive"),
+            events: data.join("events"),
             sandbox: root.join("sandbox"),
             indexes,
             data,
@@ -79,6 +89,11 @@ impl DataPaths {
             &self.transactions,
             &self.sessions,
             &self.recovery,
+            &self.conversations,
+            &self.conversation_memory,
+            &self.config,
+            &self.executive,
+            &self.events,
             &self.sandbox,
         ] {
             fs::create_dir_all(dir).with_context(|| format!("creating {}", dir.display()))?;

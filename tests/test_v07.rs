@@ -284,7 +284,7 @@ fn brain_status_includes_performance_habit_cache_stats() {
         .run_project("Create a Rust CLI project called status_calc with tests".to_string())
         .expect("project");
     let status = brain.brain_status().expect("status");
-    assert_eq!(status.version, "v0.0.2");
+    assert_eq!(status.version, "v0.0.4");
     assert!(status.performance_profile_count > 0);
     let _ = status.plan_cache_entries;
     let _ = status.habits_count;
@@ -427,5 +427,6 @@ fn trace_for(prompt: &str, success: bool) -> RouteTrace {
         transaction_ids: Vec::new(),
         recovery_plan: None,
         reliability_score: None,
+        timestamps: Default::default(),
     }
 }

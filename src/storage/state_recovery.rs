@@ -13,6 +13,10 @@ use crate::{
         artifact_index_path, artifact_pack_index_path, load_artifact_index,
         load_artifact_pack_index,
     },
+    conversation::{
+        conversation_index_path, load_conversation_index, personality_path, save_personality,
+        PersonalityProfile,
+    },
     routing::load_route_efficiency,
     storage::{load_json, save_json, DiskStore},
     utils::time::timestamp_slug,
@@ -75,6 +79,7 @@ pub fn doctor(store: &DiskStore, repair: bool) -> Result<DoctorReport> {
         artifact_pack_index_path(store),
         workspace_index_path(store),
         recipe_index_path(store),
+        conversation_index_path(store),
     ];
     for path in required_indexes {
         if !path.exists() {
@@ -139,6 +144,26 @@ pub fn doctor(store: &DiskStore, repair: bool) -> Result<DoctorReport> {
     );
     check_json("workspace index", workspace_index_path(store), &mut issues);
     check_json("recipe index", recipe_index_path(store), &mut issues);
+    check_json(
+        "conversation index",
+        conversation_index_path(store),
+        &mut issues,
+    );
+    let personality = personality_path(store);
+    if !personality.exists() {
+        issues.push(StateHealthIssue {
+            path: personality.display().to_string(),
+            issue_type: StateIssueType::MissingFile,
+            severity: Severity::Warning,
+            message: "personality config is missing".to_string(),
+            repair_available: true,
+        });
+        if repair {
+            let _ = save_personality(store, &PersonalityProfile::Balanced);
+        }
+    } else {
+        check_json("personality config", personality, &mut issues);
+    }
 
     if let Ok(registry) = load_project_registry(store) {
         for project in registry.projects {
@@ -245,6 +270,7 @@ pub fn doctor(store: &DiskStore, repair: bool) -> Result<DoctorReport> {
         let _ = load_artifact_pack_index(store);
         let _ = load_workspace_index(store);
         let _ = load_route_efficiency(store);
+        let _ = load_conversation_index(store);
     }
     let critical = issues
         .iter()
@@ -345,6 +371,8 @@ fn replacement_json_for(path: &std::path::Path) -> serde_json::Value {
         "plan_cache_index.json" => serde_json::json!({ "plans": {} }),
         "template_cache_index.json" => serde_json::json!({ "templates": {} }),
         "artifact_index.json" => serde_json::json!({ "artifacts": [] }),
+        "conversation_index.json" => serde_json::json!({ "sessions": [] }),
+        "personality.json" => serde_json::json!("Balanced"),
         "artifact_manifest.json" => serde_json::json!({
             "session_id": "recovered",
             "goal": "recovered corrupt manifest",

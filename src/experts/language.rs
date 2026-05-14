@@ -28,7 +28,8 @@ impl Expert for LanguageExpert {
             summary: format!("Prepared a concise response for: {}", context.task.input),
             suggested_actions: Vec::new(),
             success: true,
-            estimated_cost: 0.2,
+            estimated_cost: 0.1,
+            confidence_score: 0.8,
         }
     }
 }

@@ -60,6 +60,20 @@ Artifacts are written under `sandbox/artifacts/{session_id}/`. Session reports a
 
 The v0.0.2 expansion adds dependency-aware task graphs, a bounded scheduler, multi-artifact packs, workspaces, workflow recipes, report cards, self-question logs, consistency checks, claim caution notes, and reflection memories.
 
+## Conversational Layer
+
+v0.0.3 adds a deterministic conversation layer. It stores active sessions in `data/conversations/`, summaries in `data/conversation_memory/`, profile settings in `data/config/`, and exported transcripts in `sandbox/exports/conversations/`.
+
+The conversation layer is mode based rather than model based. Intent detection, topic extraction, response templates, response quality scoring, and safety filters produce structured answers for teaching, debate, planning, critique, debugging, and research outlines. It does not include an LLM by default and does not claim real understanding.
+
+## Desktop And Executive Layer
+
+v0.0.4 adds a native `eframe`/`egui` desktop GUI shell. GUI actions go through `AppApi`, which wraps existing Brain methods and keeps mutation inside the same sandbox, allowlist, journal, doctor, and regression systems.
+
+The executive layer is consciousness-inspired but not conscious. It tracks a self-model, attention state, metacognitive reports, and executive decisions to make bounded workflow orchestration more inspectable.
+
+Creative production planning is handled as deterministic markdown/package generation under `sandbox/workspaces/`. It creates production plans, timelines, shot lists, and reports; it does not render video.
+
 The release-kit, documentation-pack, learning-pack, and queue-run paths reuse the same safety boundaries: no network by default, no unrestricted shell, no background worker, and sandbox/workspace-only artifact writes.
 
 ## Disk-Backed Design

@@ -1,3 +1,8 @@
+//! Core type aliases — intentionally small.
+//!
+//! Provides stable, descriptive type aliases for IDs used throughout the codebase.
+//! A separate file keeps these types easily discoverable and importable without
+//! pulling in heavy dependencies.
 pub type NeuronId = String;
 pub type SynapseId = String;
 pub type MemoryId = String;

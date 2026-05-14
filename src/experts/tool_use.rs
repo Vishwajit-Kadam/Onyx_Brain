@@ -31,7 +31,8 @@ impl Expert for ToolUseExpert {
             summary: "Selected sandbox-only tools.".to_string(),
             suggested_actions: vec!["use_safe_filesystem".to_string()],
             success: true,
-            estimated_cost: 0.25,
+            estimated_cost: 0.1,
+            confidence_score: 0.8,
         }
     }
 }

@@ -1,8 +1,17 @@
+//! Onyx Brain — crate root.
+//!
+//! This file is intentionally small: it re-exports all top-level modules and
+//! the `Brain` facade. All logic lives in the respective submodules.
 pub mod agency;
+pub mod app_api;
 pub mod artifacts;
+pub mod conversation;
 pub mod core;
+pub mod creative;
 pub mod energy;
+pub mod executive;
 pub mod experts;
+pub mod gui;
 pub mod learning;
 pub mod memory;
 pub mod routing;

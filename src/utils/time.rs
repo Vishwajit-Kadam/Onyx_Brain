@@ -1,3 +1,7 @@
+//! Time utilities — intentionally small.
+//!
+//! Wraps `chrono::Utc::now()` and provides a timestamp slug for file naming.
+//! Kept separate so callers don't need to import chrono directly.
 use chrono::{DateTime, Utc};
 
 pub fn now() -> DateTime<Utc> {

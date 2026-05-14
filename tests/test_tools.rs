@@ -11,5 +11,6 @@ fn filesystem_tool_rejects_path_traversal() {
 fn terminal_tool_rejects_dangerous_commands() {
     let temp = tempfile::tempdir().expect("tempdir");
     let terminal = TerminalTool::new(temp.path()).expect("terminal");
-    assert!(terminal.run(&["rm", "-rf", "."], temp.path()).is_err());
+    let result = terminal.run(&["rm", "-rf", "."], temp.path()).expect("run");
+    assert!(!result.allowed);
 }

@@ -58,7 +58,62 @@ The current release is a deterministic cognitive runtime skeleton. Future releas
 - Project snapshots and rollback
 - Doctor, repair, recovery plans, and regression checks
 - Bounded autonomous worker engine for artifact creation
+- Deterministic conversational intelligence layer
+- Chat, dialogue modes, personality profiles, transcripts, and conversation memory
+- Native Windows desktop GUI shell using Rust `eframe`/`egui` and the AppApi boundary
+- Consciousness-inspired executive self-model and creative production studio
 - Basic, reliability, and autonomy benchmark modes
+
+## Desktop GUI And Executive Studio
+
+Onyx Brain v0.0.4 now uses a Rust-native `eframe`/`egui` desktop studio. The official GUI path is a native Windows executable. The GUI includes views for chat, autonomy, task boards, artifacts, memory, creative production, safety, settings, and system status.
+
+```bash
+cargo run -- gui
+cargo build --release
+```
+
+The release executable is `target/release/onyx_brain.exe`. No JavaScript toolchain or local web server is required for the native GUI.
+
+The GUI calls the Rust `AppApi` boundary. It does not bypass sandbox rules, command allowlists, or recovery systems.
+
+v0.0.4 also adds a consciousness-inspired executive layer. This is a self-model and reflective state for orchestration, not real consciousness, sentience, AGI, or a real LLM.
+
+```bash
+cargo run -- self-model
+cargo run -- attention
+cargo run -- metacognition "Analyze current autonomous session"
+cargo run -- executive-status
+cargo run -- autonomize --level executive "Create a launch kit with roadmap, FAQ, risks, demo script, and export package"
+```
+
+Creative production studio creates planning packages, not rendered video:
+
+```bash
+cargo run -- creative "Create a cinematic editing plan for a 3-hour original sci-fi feature film with scene breakdown, timeline, sound design, VFX notes, color grading notes, and final production package"
+cargo run -- benchmark creative
+cargo run -- benchmark executive
+```
+
+## Conversational Intelligence Layer
+
+Onyx Brain v0.0.3 adds a local deterministic conversation layer. It is not an LLM, not AGI, not sentient, and not conscious. It uses mode-specific templates, intent detection, conversation state, response quality checks, and safety filters to produce structured local responses.
+
+Examples:
+
+```bash
+cargo run -- chat "Hello Onyx, what can you do?"
+cargo run -- modes
+cargo run -- mode debate "Should AI systems be open source?"
+cargo run -- mode teacher "Explain sparse activation to a beginner"
+cargo run -- mode critic "Review the Onyx Brain architecture"
+cargo run -- mode planner "Plan Onyx Brain v0.0.4"
+cargo run -- mode architect "Design a safe optional LLM adapter"
+cargo run -- mode debugger "cargo test failed with unresolved import"
+cargo run -- mode research-outline "Create a research outline for brain-inspired AI"
+```
+
+Conversation state is stored under `data/conversations/`, summaries under `data/conversation_memory/`, and transcript exports under `sandbox/exports/conversations/`.
 
 ## Autonomous Worker Engine
 
@@ -122,6 +177,7 @@ This does not make Onyx Brain safe for sensitive production systems. Review tool
 ```bash
 cargo run -- init
 cargo run -- worker "Create and improve a Rust calculator project called worker_calc"
+cargo run -- chat "Hello Onyx, what can you do?"
 cargo run -- autonomize --level full-bounded "Create a 10-slide presentation about brain-inspired AI for students with speaker notes and a design guide"
 cargo run -- doctor
 cargo run -- regression-check
@@ -157,6 +213,7 @@ cargo run -- rollback latest
 cargo run -- recover latest
 cargo run -- benchmark reliability
 cargo run -- benchmark autonomy
+cargo run -- benchmark conversation
 cargo run -- maintain
 ```
 

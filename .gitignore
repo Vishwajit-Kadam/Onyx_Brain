@@ -2,6 +2,10 @@
 /target/
 **/*.pdb
 
+# JavaScript/Tauri generated dependencies and schemas
+/node_modules/
+/gen/
+
 # Generated sandbox outputs
 /sandbox/*
 !/sandbox/.gitkeep

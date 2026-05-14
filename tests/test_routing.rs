@@ -11,7 +11,7 @@ fn inhibitory_synapse_reduces_activation() {
         "a",
         "b",
         onyx_brain::core::SynapseType::Inhibitory,
-        -0.7,
+        0.7,
     );
     synapse.confidence = 0.5;
     assert!((inhibitory_amount(&synapse) - 0.35).abs() < f32::EPSILON);

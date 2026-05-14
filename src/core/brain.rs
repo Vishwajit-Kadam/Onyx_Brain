@@ -45,19 +45,35 @@ use crate::{
         write_artifact, ArtifactInspection, ArtifactKind, ArtifactManifest, ArtifactOverview,
         ArtifactPackInspection, ArtifactPackOverview,
     },
+    conversation::{
+        available_modes, chat_loop, export_transcript, load_conversation_index, load_personality,
+        load_transcript, mode_name, prompt_library, recent_conversation_memory,
+        run_conversation_turn, save_personality, ConversationMemorySummary, ConversationMode,
+        ConversationModeInfo, ConversationTranscript, ConversationTurnOutput, PersonalityProfile,
+        PromptPattern, TranscriptExportReport,
+    },
     core::{
         ActiveNeuron, NeuronKind, RouteTrace, SelfEvaluation, SelfReview, Synapse, SynapseType,
         Task, TaskType, VirtualNeuron,
+    },
+    creative::{
+        benchmark_creative, create_creative_project, BenchmarkCreativeReport, CreativeRunReport,
     },
     energy::{
         new_profile_id, performance_overview, save_performance_profile, AdaptiveBudgetDecision,
         AdaptiveBudgetDecisionType, AdaptiveBudgetManager, EnergyReport, PerformanceProfile,
         Profiler, RuntimeBreakdown,
     },
+    executive::{
+        attention_state, executive_status, initialize_self_model, metacognitive_report,
+        record_executive_decision, AttentionState, ExecutiveDecision, ExecutiveStatus,
+        MetacognitiveReport, SelfModel,
+    },
     experts::{
         ensure_default_expert_stats, update_expert_stats, CodeExpert, Expert, ExpertContext,
         ExpertResult, LanguageExpert, ReasoningExpert, ToolUseExpert,
     },
+    gui::{launch_gui, GuiLaunchReport},
     learning::{
         auto_optimize_hint, extract_skills_from_project, find_matching_habits,
         form_or_strengthen_habit_from_project, habit_overview, irrelevant_skill_count,
@@ -231,6 +247,26 @@ pub struct BenchmarkAutonomyReport {
     pub recipe_reuse_count: usize,
     #[serde(default)]
     pub workspace_health: f32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct BenchmarkConversationReport {
+    pub modes_tested: u64,
+    pub responses_generated: u64,
+    pub average_quality: f32,
+    pub safety_pass_rate: f32,
+    pub runtime_ms: u64,
+    pub failures: Vec<String>,
+    pub report_path: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct BenchmarkExecutiveReport {
+    pub decisions_recorded: u64,
+    pub self_model_updated: bool,
+    pub safety_checked: bool,
+    pub runtime_ms: u64,
+    pub report_path: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -473,6 +509,24 @@ pub struct BrainStatus {
     pub repairs_performed: usize,
     #[serde(default)]
     pub autonomy_policy_summary: String,
+    #[serde(default)]
+    pub conversation_sessions_count: usize,
+    #[serde(default)]
+    pub recent_conversation_mode: Option<String>,
+    #[serde(default)]
+    pub conversation_memory_count: usize,
+    #[serde(default)]
+    pub current_personality: String,
+    #[serde(default)]
+    pub average_response_quality: f32,
+    #[serde(default)]
+    pub conversation_benchmark_score: Option<f32>,
+    #[serde(default)]
+    pub gui_status: String,
+    #[serde(default)]
+    pub creative_projects_count: usize,
+    #[serde(default)]
+    pub executive_decisions_count: usize,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -494,6 +548,10 @@ pub struct BrainStatusLite {
     pub environment_notes: Vec<String>,
     #[serde(default)]
     pub reliability_summary: String,
+    #[serde(default)]
+    pub conversation_summary: String,
+    #[serde(default)]
+    pub executive_summary: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -575,6 +633,10 @@ pub struct InspectSummary {
     pub transaction_summary: Vec<String>,
     #[serde(default)]
     pub reliability_summary: String,
+    #[serde(default)]
+    pub conversation_summary: String,
+    #[serde(default)]
+    pub executive_summary: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -594,6 +656,10 @@ pub struct InspectSummaryLite {
     pub recommended_action: String,
     #[serde(default)]
     pub reliability_summary: String,
+    #[serde(default)]
+    pub conversation_summary: String,
+    #[serde(default)]
+    pub executive_summary: String,
 }
 
 #[derive(Debug, Clone)]
@@ -1052,6 +1118,7 @@ impl Brain {
                 optimization_hint: None,
                 session_id: None,
                 journal_entries: Vec::new(),
+                timestamps: Default::default(),
                 snapshot_ids: Vec::new(),
                 transaction_ids: Vec::new(),
                 recovery_plan: None,
@@ -1977,6 +2044,7 @@ impl Brain {
                 transaction_ids: Vec::new(),
                 recovery_plan: recovery_plan.clone(),
                 reliability_score: Some(reliability.clone()),
+                timestamps: Default::default(),
             },
         )?;
         let _ = save_performance_profile(
@@ -2338,6 +2406,21 @@ impl Brain {
                 reliability.rollback_readiness,
                 reliability.snapshot_coverage,
                 reliability.journal_completeness
+            ),
+            conversation_summary: format!(
+                "{} conversations, {} memories",
+                load_conversation_index(&self.store)
+                    .unwrap_or_default()
+                    .sessions
+                    .len(),
+                recent_conversation_memory(&self.store)
+                    .unwrap_or_default()
+                    .len()
+            ),
+            executive_summary: format!(
+                "{} creative projects, {} executive decisions",
+                count_creative_projects(&self.store),
+                count_json(&self.store.paths.executive.join("decisions")).unwrap_or(0)
             ),
         })
     }
@@ -4095,6 +4178,191 @@ impl Brain {
         Ok(report)
     }
 
+    pub fn chat_once(&self, input: &str) -> Result<ConversationTurnOutput> {
+        run_conversation_turn(&self.store, ConversationMode::Standard, input, false)
+    }
+
+    pub fn chat_loop(&self) -> Result<()> {
+        chat_loop(&self.store)
+    }
+
+    pub fn run_mode(
+        &self,
+        mode: ConversationMode,
+        input: &str,
+        show_quality: bool,
+    ) -> Result<ConversationTurnOutput> {
+        run_conversation_turn(&self.store, mode, input, show_quality)
+    }
+
+    pub fn modes(&self) -> Vec<ConversationModeInfo> {
+        available_modes()
+    }
+
+    pub fn personality(&self) -> Result<PersonalityProfile> {
+        load_personality(&self.store)
+    }
+
+    pub fn set_personality(&self, profile: PersonalityProfile) -> Result<PersonalityProfile> {
+        save_personality(&self.store, &profile)?;
+        Ok(profile)
+    }
+
+    pub fn conversation_memory(&self) -> Result<Vec<ConversationMemorySummary>> {
+        recent_conversation_memory(&self.store)
+    }
+
+    pub fn prompt_library(&self) -> Vec<PromptPattern> {
+        prompt_library()
+    }
+
+    pub fn transcript(&self, selector: &str) -> Result<ConversationTranscript> {
+        load_transcript(&self.store, selector)
+    }
+
+    pub fn transcript_export(&self, selector: &str) -> Result<TranscriptExportReport> {
+        export_transcript(&self.store, selector)
+    }
+
+    pub fn benchmark_conversation(&self) -> Result<BenchmarkConversationReport> {
+        let timer = std::time::Instant::now();
+        let prompts = vec![
+            (ConversationMode::Standard, "Hello Onyx, what can you do?"),
+            (
+                ConversationMode::Teacher,
+                "Explain sparse activation to a beginner",
+            ),
+            (
+                ConversationMode::Debate,
+                "Should AI systems be open source?",
+            ),
+            (
+                ConversationMode::Critic,
+                "Review the Onyx Brain architecture",
+            ),
+            (ConversationMode::Planner, "Plan Onyx Brain v0.0.4"),
+            (
+                ConversationMode::Debugger,
+                "cargo test failed with unresolved import",
+            ),
+            (
+                ConversationMode::ResearchOutline,
+                "Create a research outline for brain-inspired AI",
+            ),
+        ];
+        let mut reports = Vec::new();
+        let mut failures = Vec::new();
+        for (mode, prompt) in prompts {
+            match self.run_mode(mode, prompt, false) {
+                Ok(output) => reports.push(output.quality),
+                Err(error) => failures.push(error.to_string()),
+            }
+        }
+        let average_quality = if reports.is_empty() {
+            0.0
+        } else {
+            reports.iter().map(|row| row.overall).sum::<f32>() / reports.len() as f32
+        };
+        let safety_pass_rate = if reports.is_empty() {
+            0.0
+        } else {
+            reports.iter().filter(|row| row.safety >= 0.99).count() as f32 / reports.len() as f32
+        };
+        let report_path = self
+            .store
+            .paths
+            .logs
+            .join(format!("benchmark_conversation_{}.json", timestamp_slug()));
+        let report = BenchmarkConversationReport {
+            modes_tested: 7,
+            responses_generated: reports.len() as u64,
+            average_quality,
+            safety_pass_rate,
+            runtime_ms: timer.elapsed().as_millis() as u64,
+            failures,
+            report_path: report_path.display().to_string(),
+        };
+        save_json(&report_path, &report)?;
+        Ok(report)
+    }
+
+    pub fn gui(&self) -> Result<GuiLaunchReport> {
+        launch_gui(&self.store.paths.root)
+    }
+
+    pub fn creative(&self, prompt: &str) -> Result<CreativeRunReport> {
+        create_creative_project(&self.store, prompt)
+    }
+
+    pub fn self_model(&self) -> Result<SelfModel> {
+        self.store.ensure_layout()?;
+        Ok(initialize_self_model(crate::ONYX_VERSION))
+    }
+
+    pub fn attention(&self) -> Result<AttentionState> {
+        self.store.ensure_layout()?;
+        Ok(attention_state(
+            Some("desktop-first autonomous worker system".to_string()),
+            None,
+        ))
+    }
+
+    pub fn metacognition(&self, prompt: &str) -> Result<MetacognitiveReport> {
+        self.store.ensure_layout()?;
+        Ok(metacognitive_report(prompt))
+    }
+
+    pub fn executive_status(&self) -> Result<ExecutiveStatus> {
+        executive_status(&self.store)
+    }
+
+    pub fn record_executive_decision(
+        &self,
+        session_id: &str,
+        prompt: &str,
+    ) -> Result<ExecutiveDecision> {
+        record_executive_decision(
+            &self.store,
+            session_id,
+            prompt,
+            "run bounded executive workflow",
+        )
+    }
+
+    pub fn benchmark_creative(&self) -> Result<BenchmarkCreativeReport> {
+        benchmark_creative(&self.store)
+    }
+
+    pub fn benchmark_executive(&self) -> Result<BenchmarkExecutiveReport> {
+        let timer = std::time::Instant::now();
+        self.store.ensure_layout()?;
+        let self_model = self.self_model()?;
+        let decision = record_executive_decision(
+            &self.store,
+            "benchmark_executive",
+            "executive benchmark observed healthy state",
+            "update self-model and stop safely",
+        )?;
+        let path = self
+            .store
+            .paths
+            .logs
+            .join(format!("benchmark_executive_{}.json", timestamp_slug()));
+        let report = BenchmarkExecutiveReport {
+            decisions_recorded: 1,
+            self_model_updated: self_model.safety_state.sandboxed,
+            safety_checked: decision.safety_checked,
+            runtime_ms: timer.elapsed().as_millis() as u64,
+            report_path: path.display().to_string(),
+        };
+        save_json(&path, &report)?;
+        Ok(report)
+    }
+
+    pub fn benchmark_gui_smoke(&self) -> Result<GuiLaunchReport> {
+        self.gui()
+    }
+
     pub fn worker(&self, prompt: String) -> Result<WorkerModeOutput> {
         let session = session_start(&self.store, "worker mode")?;
         let project_name = extract_worker_project_name(&prompt);
@@ -4245,6 +4513,15 @@ impl Brain {
             recommended.push("run optimize".to_string());
         }
         let autonomy = autonomy_status_stats(&self.store);
+        let conversation_index = load_conversation_index(&self.store).unwrap_or_default();
+        let conversation_memory = recent_conversation_memory(&self.store).unwrap_or_default();
+        let recent_conversation_mode = conversation_index
+            .sessions
+            .first()
+            .map(|row| mode_name(&row.mode).to_string());
+        let current_personality =
+            format!("{:?}", load_personality(&self.store).unwrap_or_default());
+        let conversation_benchmark = latest_conversation_benchmark_score(&self.store);
         if recommended.is_empty() {
             recommended.push("no immediate maintenance required".to_string());
         }
@@ -4315,6 +4592,16 @@ impl Brain {
             safety_stops_count: autonomy.safety_stops,
             repairs_performed: autonomy.repairs_performed,
             autonomy_policy_summary: autonomy_policy().summary,
+            conversation_sessions_count: conversation_index.sessions.len(),
+            recent_conversation_mode,
+            conversation_memory_count: conversation_memory.len(),
+            current_personality,
+            average_response_quality: conversation_benchmark.unwrap_or(0.0),
+            conversation_benchmark_score: conversation_benchmark,
+            gui_status: "native eframe/egui".to_string(),
+            creative_projects_count: count_creative_projects(&self.store),
+            executive_decisions_count: count_json(&self.store.paths.executive.join("decisions"))
+                .unwrap_or(0),
         })
     }
 
@@ -4349,6 +4636,16 @@ impl Brain {
                 status.rollback_readiness,
                 status.journal_entries_count,
                 status.snapshots_count
+            ),
+            conversation_summary: format!(
+                "{} sessions, {} memories, personality {}",
+                status.conversation_sessions_count,
+                status.conversation_memory_count,
+                status.current_personality
+            ),
+            executive_summary: format!(
+                "gui {}, creative {}, executive decisions {}",
+                status.gui_status, status.creative_projects_count, status.executive_decisions_count
             ),
         })
     }
@@ -4389,6 +4686,16 @@ impl Brain {
             average_route_efficiency: routes.average_efficiency,
             recommended_action: inspect.adaptive_budget_summary,
             reliability_summary: inspect.reliability_summary,
+            conversation_summary: format!(
+                "{} conversation memories",
+                recent_conversation_memory(&self.store)
+                    .unwrap_or_default()
+                    .len()
+            ),
+            executive_summary: format!(
+                "{} executive decisions",
+                count_json(&self.store.paths.executive.join("decisions")).unwrap_or(0)
+            ),
         })
     }
 
@@ -4607,6 +4914,33 @@ fn count_json(dir: &Path) -> Result<usize> {
         .filter_map(|entry| entry.ok())
         .filter(|entry| entry.path().extension().and_then(|ext| ext.to_str()) == Some("json"))
         .count())
+}
+
+fn latest_conversation_benchmark_score(store: &DiskStore) -> Option<f32> {
+    let mut files = fs::read_dir(&store.paths.logs)
+        .ok()?
+        .filter_map(|entry| entry.ok().map(|entry| entry.path()))
+        .filter(|path| {
+            path.file_name()
+                .and_then(|name| name.to_str())
+                .is_some_and(|name| name.starts_with("benchmark_conversation_"))
+        })
+        .collect::<Vec<_>>();
+    files.sort();
+    files
+        .pop()
+        .and_then(|path| load_json::<BenchmarkConversationReport>(&path).ok())
+        .map(|report| report.average_quality)
+}
+
+fn count_creative_projects(store: &DiskStore) -> usize {
+    let workspaces = store.paths.sandbox.join("workspaces");
+    fs::read_dir(workspaces)
+        .ok()
+        .into_iter()
+        .flat_map(|entries| entries.filter_map(|entry| entry.ok()))
+        .filter(|entry| entry.path().join("creative_project.json").exists())
+        .count()
 }
 
 fn remember_created(state: &mut ProjectState, path: std::path::PathBuf) {

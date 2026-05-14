@@ -134,6 +134,10 @@ fn diagnostics_detect_missing_function_and_type_mismatch() {
         status: Some(1),
         stdout: String::new(),
         stderr: "error[E0425]: cannot find function `multiply` in this scope".to_string(),
+        duration_ms: 0,
+        allowed: true,
+        sandbox_valid: true,
+        executed_at: chrono::Utc::now(),
     };
     assert_eq!(
         diagnose_command(&missing).kind,
@@ -144,6 +148,10 @@ fn diagnostics_detect_missing_function_and_type_mismatch() {
         status: Some(1),
         stdout: String::new(),
         stderr: "error[E0308]: mismatched types".to_string(),
+        duration_ms: 0,
+        allowed: true,
+        sandbox_valid: true,
+        executed_at: chrono::Utc::now(),
     };
     assert_eq!(
         diagnose_command(&mismatch).kind,

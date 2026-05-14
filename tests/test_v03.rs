@@ -72,6 +72,10 @@ fn diagnostics_detect_cargo_success() {
         status: Some(0),
         stdout: "Finished".to_string(),
         stderr: String::new(),
+        duration_ms: 0,
+        allowed: true,
+        sandbox_valid: true,
+        executed_at: chrono::Utc::now(),
     };
     let report = diagnose_command(&command);
     assert_eq!(report.kind, DiagnosticKind::CargoCheckPassed);
@@ -84,6 +88,10 @@ fn diagnostics_detect_simple_rust_syntax_error_text() {
         status: Some(1),
         stdout: String::new(),
         stderr: "error: expected `;`, found `}`".to_string(),
+        duration_ms: 0,
+        allowed: true,
+        sandbox_valid: true,
+        executed_at: chrono::Utc::now(),
     };
     let report = diagnose_command(&command);
     assert_eq!(report.kind, DiagnosticKind::SyntaxError);

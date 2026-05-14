@@ -1,17 +1,23 @@
 use anyhow::Result;
 use clap::{Parser, Subcommand, ValueEnum};
-use onyx_brain::{agency::AutonomyLevel, memory::MemoryType, Brain, ONYX_VERSION};
+use onyx_brain::{
+    agency::AutonomyLevel,
+    conversation::{ConversationMode, PersonalityProfile},
+    memory::MemoryType,
+    Brain, ONYX_VERSION,
+};
 
 #[derive(Debug, Parser)]
 #[command(name = "onyx_brain", version, about = "Miniature sparse cognitive OS")]
 struct Cli {
     #[command(subcommand)]
-    command: Command,
+    command: Option<Command>,
 }
 
 #[derive(Debug, Subcommand)]
 enum Command {
     Init,
+    Gui,
     Think {
         input: String,
     },
@@ -108,6 +114,38 @@ enum Command {
     QueueRun {
         input: String,
     },
+    Creative {
+        input: String,
+    },
+    SelfModel,
+    Attention,
+    Metacognition {
+        input: String,
+    },
+    ExecutiveStatus,
+    Chat {
+        input: Option<String>,
+    },
+    Modes,
+    Mode {
+        #[arg(value_enum)]
+        mode: ConversationModeArg,
+        #[arg(long)]
+        show_quality: bool,
+        input: String,
+    },
+    Personality {
+        #[command(subcommand)]
+        command: Option<PersonalityCommand>,
+    },
+    ConversationMemory,
+    PromptLibrary,
+    Transcript {
+        selector: String,
+    },
+    TranscriptExport {
+        selector: String,
+    },
     Journal {
         #[arg(long)]
         session: Option<String>,
@@ -193,6 +231,80 @@ enum AutonomyLevelArg {
     FullBounded,
     ReviewOnly,
     RepairOnly,
+    Studio,
+    Executive,
+}
+
+#[derive(Debug, Clone, ValueEnum)]
+enum ConversationModeArg {
+    Standard,
+    Debate,
+    Teacher,
+    Socratic,
+    Critic,
+    Planner,
+    Architect,
+    Debugger,
+    ResearchOutline,
+    Creative,
+    Summarizer,
+    SafetyReview,
+    ProductManager,
+    Coach,
+}
+
+impl From<ConversationModeArg> for ConversationMode {
+    fn from(value: ConversationModeArg) -> Self {
+        match value {
+            ConversationModeArg::Standard => ConversationMode::Standard,
+            ConversationModeArg::Debate => ConversationMode::Debate,
+            ConversationModeArg::Teacher => ConversationMode::Teacher,
+            ConversationModeArg::Socratic => ConversationMode::Socratic,
+            ConversationModeArg::Critic => ConversationMode::Critic,
+            ConversationModeArg::Planner => ConversationMode::Planner,
+            ConversationModeArg::Architect => ConversationMode::Architect,
+            ConversationModeArg::Debugger => ConversationMode::Debugger,
+            ConversationModeArg::ResearchOutline => ConversationMode::ResearchOutline,
+            ConversationModeArg::Creative => ConversationMode::Creative,
+            ConversationModeArg::Summarizer => ConversationMode::Summarizer,
+            ConversationModeArg::SafetyReview => ConversationMode::SafetyReview,
+            ConversationModeArg::ProductManager => ConversationMode::ProductManager,
+            ConversationModeArg::Coach => ConversationMode::Coach,
+        }
+    }
+}
+
+#[derive(Debug, Subcommand)]
+enum PersonalityCommand {
+    Set {
+        #[arg(value_enum)]
+        profile: PersonalityProfileArg,
+    },
+}
+
+#[derive(Debug, Clone, ValueEnum)]
+enum PersonalityProfileArg {
+    Balanced,
+    Friendly,
+    Technical,
+    Concise,
+    Mentor,
+    DebateCoach,
+    Productive,
+}
+
+impl From<PersonalityProfileArg> for PersonalityProfile {
+    fn from(value: PersonalityProfileArg) -> Self {
+        match value {
+            PersonalityProfileArg::Balanced => PersonalityProfile::Balanced,
+            PersonalityProfileArg::Friendly => PersonalityProfile::Friendly,
+            PersonalityProfileArg::Technical => PersonalityProfile::Technical,
+            PersonalityProfileArg::Concise => PersonalityProfile::Concise,
+            PersonalityProfileArg::Mentor => PersonalityProfile::Mentor,
+            PersonalityProfileArg::DebateCoach => PersonalityProfile::DebateCoach,
+            PersonalityProfileArg::Productive => PersonalityProfile::Productive,
+        }
+    }
 }
 
 impl From<AutonomyLevelArg> for AutonomyLevel {
@@ -204,6 +316,8 @@ impl From<AutonomyLevelArg> for AutonomyLevel {
             AutonomyLevelArg::FullBounded => AutonomyLevel::FullBounded,
             AutonomyLevelArg::ReviewOnly => AutonomyLevel::ReviewOnly,
             AutonomyLevelArg::RepairOnly => AutonomyLevel::RepairOnly,
+            AutonomyLevelArg::Studio => AutonomyLevel::Studio,
+            AutonomyLevelArg::Executive => AutonomyLevel::Executive,
         }
     }
 }
@@ -216,12 +330,20 @@ fn main() -> Result<()> {
         .init();
 
     let cli = Cli::parse();
+    if cli.command.is_none() {
+        onyx_brain::gui::run_native_gui()?;
+        return Ok(());
+    }
     let root = std::env::current_dir()?;
     let brain = Brain::new(root);
-    match cli.command {
+    let command = cli.command.unwrap_or(Command::Gui);
+    match command {
         Command::Init => {
             brain.init()?;
             println!("Onyx Brain {ONYX_VERSION} initialized");
+        }
+        Command::Gui => {
+            onyx_brain::gui::run_native_gui()?;
         }
         Command::Think { input } => {
             let output = brain.think(input)?;
@@ -695,6 +817,46 @@ fn main() -> Result<()> {
                 println!("Safety stops: {}", report.safety_stops);
                 println!("Runtime ms: {}", report.runtime_ms);
                 println!("Report: {}", report.report_path);
+            } else if name == "conversation" {
+                let report = brain.benchmark_conversation()?;
+                println!("Onyx Brain {ONYX_VERSION} conversation benchmark");
+                println!("Modes tested: {}", report.modes_tested);
+                println!("Responses generated: {}", report.responses_generated);
+                println!("Average quality: {:.2}", report.average_quality);
+                println!("Safety pass rate: {:.2}", report.safety_pass_rate);
+                println!("Runtime ms: {}", report.runtime_ms);
+                println!("Failures: {}", report.failures.len());
+                println!("Report: {}", report.report_path);
+            } else if name == "creative" {
+                let report = brain.benchmark_creative()?;
+                println!("Onyx Brain {ONYX_VERSION} creative benchmark");
+                println!("Tasks run: {}", report.tasks_run);
+                println!("Tasks successful: {}", report.tasks_successful);
+                println!("Artifacts created: {}", report.artifacts_created);
+                println!("Validation passed: {}", report.validation_passed);
+                println!("Runtime ms: {}", report.runtime_ms);
+                println!("Report: {}", report.report_path);
+            } else if name == "executive" {
+                let report = brain.benchmark_executive()?;
+                println!("Onyx Brain {ONYX_VERSION} executive benchmark");
+                println!("Decisions recorded: {}", report.decisions_recorded);
+                println!("Self-model updated: {}", report.self_model_updated);
+                println!("Safety checked: {}", report.safety_checked);
+                println!("Runtime ms: {}", report.runtime_ms);
+                println!("Report: {}", report.report_path);
+            } else if name == "gui-smoke" {
+                let report = brain.benchmark_gui_smoke()?;
+                println!("Onyx Brain {ONYX_VERSION} GUI smoke benchmark");
+                println!(
+                    "GUI status: {}",
+                    if report.launched {
+                        "ready"
+                    } else {
+                        "missing assets"
+                    }
+                );
+                println!("Views: {}", report.views.len());
+                println!("Assets: {}", report.asset_path);
             } else {
                 let report = brain.benchmark(&name)?;
                 println!("Onyx Brain {ONYX_VERSION} benchmark");
@@ -1134,6 +1296,127 @@ fn main() -> Result<()> {
             println!("Artifact packs created: {}", report.artifact_packs_created);
             println!("Report: {}", report.report_path);
         }
+        Command::Creative { input } => {
+            let report = brain.creative(&input)?;
+            println!("Onyx Brain {ONYX_VERSION} creative production studio");
+            println!("Session: {}", report.session_id);
+            println!("Project: {}", report.title);
+            println!("Workspace: {}", report.workspace_path);
+            println!("Artifacts created: {}", report.artifacts_created.len());
+            println!("Validation passed: {}", report.validation_passed);
+            if let Some(caution) = report.originality_caution {
+                println!("Originality caution: {caution}");
+            }
+            println!("Final report: {}", report.final_report_path);
+        }
+        Command::SelfModel => {
+            let model = brain.self_model()?;
+            println!("Onyx Brain {ONYX_VERSION} self-model");
+            println!("Name: {}", model.name);
+            println!("Mode: {}", model.current_mode);
+            println!("Confidence: {:.2}", model.confidence_state.score);
+            println!("Limitations: {}", model.limitations.join("; "));
+        }
+        Command::Attention => {
+            let attention = brain.attention()?;
+            println!("Onyx Brain {ONYX_VERSION} attention state");
+            println!("Active goal: {:?}", attention.active_goal);
+            println!("Active task: {:?}", attention.active_task);
+            println!("Focus score: {:.2}", attention.focus_score);
+        }
+        Command::Metacognition { input } => {
+            let report = brain.metacognition(&input)?;
+            println!("Onyx Brain {ONYX_VERSION} metacognition");
+            println!("Doing: {}", report.what_i_am_doing);
+            println!("Why: {}", report.why_i_am_doing_it);
+            println!("Known: {}", report.what_i_know.join("; "));
+            println!("Unknown: {}", report.what_i_do_not_know.join("; "));
+            println!("Next best action: {}", report.next_best_action);
+            println!("Confidence: {:.2}", report.confidence);
+        }
+        Command::ExecutiveStatus => {
+            let status = brain.executive_status()?;
+            println!("Onyx Brain {ONYX_VERSION} executive status");
+            println!("Active goal: {:?}", status.active_goal);
+            println!("Active task: {:?}", status.active_task);
+            println!("Confidence: {:.2}", status.confidence);
+            println!("Safety: {}", status.safety_state);
+            println!("Recent decisions: {}", status.recent_decisions.join("; "));
+        }
+        Command::Chat { input } => {
+            if let Some(input) = input {
+                let output = brain.chat_once(&input)?;
+                println!("Onyx Brain {ONYX_VERSION} chat");
+                println!("Mode: {}", output.mode);
+                println!("{}", output.response);
+            } else {
+                brain.chat_loop()?;
+            }
+        }
+        Command::Modes => {
+            println!("Onyx Brain {ONYX_VERSION} conversation modes");
+            for mode in brain.modes() {
+                println!("{}: {}", mode.name, mode.description);
+            }
+        }
+        Command::Mode {
+            mode,
+            show_quality,
+            input,
+        } => {
+            let output = brain.run_mode(mode.into(), &input, show_quality)?;
+            println!("Onyx Brain {ONYX_VERSION} mode {}", output.mode);
+            println!("{}", output.response);
+        }
+        Command::Personality { command } => match command {
+            Some(PersonalityCommand::Set { profile }) => {
+                let profile = brain.set_personality(profile.into())?;
+                println!("Onyx Brain {ONYX_VERSION} personality set: {:?}", profile);
+            }
+            None => {
+                println!(
+                    "Onyx Brain {ONYX_VERSION} personality: {:?}",
+                    brain.personality()?
+                );
+            }
+        },
+        Command::ConversationMemory => {
+            println!("Onyx Brain {ONYX_VERSION} conversation memory");
+            for row in brain.conversation_memory()? {
+                println!("{} | {} | {:.2}", row.topic, row.summary, row.importance);
+            }
+        }
+        Command::PromptLibrary => {
+            println!("Onyx Brain {ONYX_VERSION} prompt library");
+            for pattern in brain.prompt_library() {
+                println!(
+                    "{} | {:?} | triggers: {}",
+                    pattern.name,
+                    pattern.mode,
+                    pattern.trigger_keywords.join(", ")
+                );
+            }
+        }
+        Command::Transcript { selector } => {
+            let transcript = brain.transcript(&selector)?;
+            println!("Onyx Brain {ONYX_VERSION} transcript");
+            println!("Session: {}", transcript.session_id);
+            println!("Summary: {}", transcript.summary);
+            for message in transcript.messages {
+                println!(
+                    "{:?}: {}",
+                    message.role,
+                    message.content.lines().next().unwrap_or("")
+                );
+            }
+        }
+        Command::TranscriptExport { selector } => {
+            let report = brain.transcript_export(&selector)?;
+            println!("Onyx Brain {ONYX_VERSION} transcript export");
+            println!("Session: {}", report.session_id);
+            println!("Export: {}", report.export_path);
+            println!("Files: {}", report.files_written.len());
+        }
         Command::Journal { session } => {
             println!("Onyx Brain {ONYX_VERSION} journal");
             for entry in brain.journal(session)? {
@@ -1302,6 +1585,8 @@ fn main() -> Result<()> {
                 );
                 println!("Recommended action: {}", status.recommended_action);
                 println!("Reliability: {}", status.reliability_summary);
+                println!("Conversation: {}", status.conversation_summary);
+                println!("Executive: {}", status.executive_summary);
                 if !status.environment_notes.is_empty() {
                     println!("Environment notes: {}", status.environment_notes.join("; "));
                 }
@@ -1401,6 +1686,26 @@ fn main() -> Result<()> {
             println!("  safety stops: {}", status.safety_stops_count);
             println!("  repairs performed: {}", status.repairs_performed);
             println!("  policy: {}", status.autonomy_policy_summary);
+            println!("Conversation:");
+            println!("  sessions: {}", status.conversation_sessions_count);
+            println!("  recent mode: {:?}", status.recent_conversation_mode);
+            println!("  memories: {}", status.conversation_memory_count);
+            println!("  personality: {}", status.current_personality);
+            println!(
+                "  average response quality: {:.2}",
+                status.average_response_quality
+            );
+            println!(
+                "  conversation benchmark score: {:?}",
+                status.conversation_benchmark_score
+            );
+            println!("Executive / Creative / GUI:");
+            println!("  GUI status: {}", status.gui_status);
+            println!("  creative projects: {}", status.creative_projects_count);
+            println!(
+                "  executive decisions: {}",
+                status.executive_decisions_count
+            );
             println!("Environment:");
             println!(
                 "  Cloud sync path: {}",
@@ -1469,6 +1774,8 @@ fn main() -> Result<()> {
                 );
                 println!("Recommended action: {}", summary.recommended_action);
                 println!("Reliability: {}", summary.reliability_summary);
+                println!("Conversation: {}", summary.conversation_summary);
+                println!("Executive: {}", summary.executive_summary);
                 return Ok(());
             }
             let summary = brain.inspect()?;

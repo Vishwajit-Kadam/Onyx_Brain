@@ -8,6 +8,27 @@
 - `cargo run -- inspect --summary`: show a concise runtime summary.
 - `cargo run -- brain-status`: show the dashboard.
 - `cargo run -- brain-status --summary`: show a concise dashboard.
+- `cargo run -- gui`: launch the native Rust `eframe`/`egui` desktop app.
+
+## Conversation
+
+- `cargo run -- chat`: start an interactive local chat loop.
+- `cargo run -- chat "..."`: run one deterministic conversation turn.
+- `cargo run -- modes`: list conversation modes.
+- `cargo run -- mode debate "..."`: map two sides, counterarguments, common ground, and a verdict.
+- `cargo run -- mode teacher "..."`: explain with examples, exercise, and recap.
+- `cargo run -- mode socratic "..."`: guide with questions and hints.
+- `cargo run -- mode critic "..."`: review strengths, weaknesses, risks, and improvements.
+- `cargo run -- mode planner "..."`: build phases, tasks, dependencies, risks, and next action.
+- `cargo run -- mode architect "..."`: outline modules, data flow, storage, safety, and tradeoffs.
+- `cargo run -- mode debugger "..."`: propose safe checks and allowlisted Cargo commands.
+- `cargo run -- mode research-outline "..."`: create research questions, source types, verification notes, and citation placeholders.
+- `cargo run -- personality`: show the active personality profile.
+- `cargo run -- personality set friendly`: persist a light wording profile.
+- `cargo run -- conversation-memory`: list recent conversation summaries.
+- `cargo run -- prompt-library`: list reusable prompt patterns.
+- `cargo run -- transcript latest`: show the latest transcript.
+- `cargo run -- transcript-export latest`: export transcript markdown and metadata.
 
 ## Project And Goal Work
 
@@ -20,6 +41,8 @@
 - `cargo run -- autonomize --level repair-only "Repair latest artifact pack"`: repair validation/quality issues without creating unrelated deliverables.
 - `cargo run -- auto --level full-bounded "..."`: alias for `autonomize`.
 - `cargo run -- queue-run "Goal 1 || Goal 2"`: run multiple bounded goals sequentially.
+- `cargo run -- autonomize --level executive "..."`: use bounded executive orchestration.
+- `cargo run -- autonomize --level studio "..."`: use creative/project studio-oriented autonomy.
 - `cargo run -- projects`: list registered projects.
 - `cargo run -- project-inspect <name>`: inspect a registered project.
 - `cargo run -- resume <goal_id>`: resume a project goal.
@@ -54,6 +77,11 @@
 - `cargo run -- trace latest`: show the transparent execution trace for the latest autonomous run.
 - `cargo run -- autonomy-history`: list recent autonomous sessions, grades, packs, and exports.
 - `cargo run -- cleanup-autonomy`: remove only safe workspace temp files.
+- `cargo run -- creative "..."`: create a creative production planning package.
+- `cargo run -- self-model`: show the consciousness-inspired self-model.
+- `cargo run -- attention`: show current attention state.
+- `cargo run -- metacognition "..."`: write a bounded metacognitive report.
+- `cargo run -- executive-status`: show recent executive decisions and safety state.
 
 ## Reliability
 
@@ -96,4 +124,8 @@
 - `cargo run -- benchmark autonomy`: run the autonomous worker benchmark.
 - `cargo run -- benchmark artifacts`: run the artifact-pack benchmark.
 - `cargo run -- benchmark advanced-autonomy`: run launch-kit, technical-report, product-spec, learning-pack, export, audit, doctor, and regression checks.
+- `cargo run -- benchmark conversation`: test deterministic conversation modes, quality scoring, and safety filtering.
+- `cargo run -- benchmark gui-smoke`: verify GUI assets and AppApi-ready state.
+- `cargo run -- benchmark creative`: create and validate a creative production package.
+- `cargo run -- benchmark executive`: record an executive decision and self-model update.
 - `cargo run -- benchmark compare`: compare benchmark history.
