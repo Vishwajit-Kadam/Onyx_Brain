@@ -187,7 +187,7 @@ pub fn initialize_self_model(version: &str) -> SelfModel {
             sandboxed: true,
             network_default: "disabled by default".to_string(),
             unrestricted_shell: false,
-            note: "Safety boundaries cannot be disabled from the GUI.".to_string(),
+            note: "Safety boundaries cannot be disabled from runtime commands.".to_string(),
         },
         last_updated: Utc::now(),
     }

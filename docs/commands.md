@@ -8,7 +8,6 @@
 - `cargo run -- inspect --summary`: show a concise runtime summary.
 - `cargo run -- brain-status`: show the dashboard.
 - `cargo run -- brain-status --summary`: show a concise dashboard.
-- `cargo run -- gui`: launch the native Rust `eframe`/`egui` desktop app.
 
 ## Conversation
 
@@ -125,7 +124,6 @@
 - `cargo run -- benchmark artifacts`: run the artifact-pack benchmark.
 - `cargo run -- benchmark advanced-autonomy`: run launch-kit, technical-report, product-spec, learning-pack, export, audit, doctor, and regression checks.
 - `cargo run -- benchmark conversation`: test deterministic conversation modes, quality scoring, and safety filtering.
-- `cargo run -- benchmark gui-smoke`: verify GUI assets and AppApi-ready state.
 - `cargo run -- benchmark creative`: create and validate a creative production package.
 - `cargo run -- benchmark executive`: record an executive decision and self-model update.
 - `cargo run -- benchmark compare`: compare benchmark history.

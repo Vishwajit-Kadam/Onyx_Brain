@@ -4,7 +4,6 @@ use onyx_brain::{
     executive::{
         attention_state, initialize_self_model, metacognitive_report, record_executive_decision,
     },
-    gui::{default_theme, GuiState},
     Brain,
 };
 
@@ -29,17 +28,6 @@ fn app_api_status_chat_and_autonomy_paths_work() {
         )
         .unwrap();
     assert!(auto.tasks_planned > 0);
-}
-
-#[test]
-fn gui_state_theme_and_launch_are_available() {
-    let dir = tempfile::tempdir().unwrap();
-    let brain = Brain::new(dir.path());
-    let state = GuiState::new();
-    assert!(state.views.iter().any(|view| view == "CreativeStudioView"));
-    assert_eq!(default_theme().name, "Onyx Dark");
-    let report = brain.gui().unwrap();
-    assert!(report.views.len() >= 10);
 }
 
 #[test]

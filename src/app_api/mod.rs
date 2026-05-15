@@ -124,8 +124,7 @@ impl AppApi {
                 "cargo check".to_string(),
                 "cargo test".to_string(),
             ],
-            safety_note: "GUI actions call AppApi and preserve sandbox/allowlist boundaries."
-                .to_string(),
+            safety_note: "AppApi actions preserve sandbox/allowlist boundaries.".to_string(),
         }
     }
 

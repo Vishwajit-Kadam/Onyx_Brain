@@ -17,7 +17,6 @@ struct Cli {
 #[derive(Debug, Subcommand)]
 enum Command {
     Init,
-    Gui,
     Think {
         input: String,
     },
@@ -330,20 +329,15 @@ fn main() -> Result<()> {
         .init();
 
     let cli = Cli::parse();
-    if cli.command.is_none() {
-        onyx_brain::gui::run_native_gui()?;
-        return Ok(());
-    }
     let root = std::env::current_dir()?;
     let brain = Brain::new(root);
-    let command = cli.command.unwrap_or(Command::Gui);
+    let command = cli
+        .command
+        .unwrap_or(Command::BrainStatus { summary: true });
     match command {
         Command::Init => {
             brain.init()?;
             println!("Onyx Brain {ONYX_VERSION} initialized");
-        }
-        Command::Gui => {
-            onyx_brain::gui::run_native_gui()?;
         }
         Command::Think { input } => {
             let output = brain.think(input)?;
@@ -844,19 +838,6 @@ fn main() -> Result<()> {
                 println!("Safety checked: {}", report.safety_checked);
                 println!("Runtime ms: {}", report.runtime_ms);
                 println!("Report: {}", report.report_path);
-            } else if name == "gui-smoke" {
-                let report = brain.benchmark_gui_smoke()?;
-                println!("Onyx Brain {ONYX_VERSION} GUI smoke benchmark");
-                println!(
-                    "GUI status: {}",
-                    if report.launched {
-                        "ready"
-                    } else {
-                        "missing assets"
-                    }
-                );
-                println!("Views: {}", report.views.len());
-                println!("Assets: {}", report.asset_path);
             } else {
                 let report = brain.benchmark(&name)?;
                 println!("Onyx Brain {ONYX_VERSION} benchmark");
@@ -1699,8 +1680,7 @@ fn main() -> Result<()> {
                 "  conversation benchmark score: {:?}",
                 status.conversation_benchmark_score
             );
-            println!("Executive / Creative / GUI:");
-            println!("  GUI status: {}", status.gui_status);
+            println!("Executive / Creative:");
             println!("  creative projects: {}", status.creative_projects_count);
             println!(
                 "  executive decisions: {}",

@@ -73,7 +73,6 @@ use crate::{
         ensure_default_expert_stats, update_expert_stats, CodeExpert, Expert, ExpertContext,
         ExpertResult, LanguageExpert, ReasoningExpert, ToolUseExpert,
     },
-    gui::{launch_gui, GuiLaunchReport},
     learning::{
         auto_optimize_hint, extract_skills_from_project, find_matching_habits,
         form_or_strengthen_habit_from_project, habit_overview, irrelevant_skill_count,
@@ -521,8 +520,6 @@ pub struct BrainStatus {
     pub average_response_quality: f32,
     #[serde(default)]
     pub conversation_benchmark_score: Option<f32>,
-    #[serde(default)]
-    pub gui_status: String,
     #[serde(default)]
     pub creative_projects_count: usize,
     #[serde(default)]
@@ -4286,10 +4283,6 @@ impl Brain {
         Ok(report)
     }
 
-    pub fn gui(&self) -> Result<GuiLaunchReport> {
-        launch_gui(&self.store.paths.root)
-    }
-
     pub fn creative(&self, prompt: &str) -> Result<CreativeRunReport> {
         create_creative_project(&self.store, prompt)
     }
@@ -4357,10 +4350,6 @@ impl Brain {
         };
         save_json(&path, &report)?;
         Ok(report)
-    }
-
-    pub fn benchmark_gui_smoke(&self) -> Result<GuiLaunchReport> {
-        self.gui()
     }
 
     pub fn worker(&self, prompt: String) -> Result<WorkerModeOutput> {
@@ -4598,7 +4587,6 @@ impl Brain {
             current_personality,
             average_response_quality: conversation_benchmark.unwrap_or(0.0),
             conversation_benchmark_score: conversation_benchmark,
-            gui_status: "native eframe/egui".to_string(),
             creative_projects_count: count_creative_projects(&self.store),
             executive_decisions_count: count_json(&self.store.paths.executive.join("decisions"))
                 .unwrap_or(0),
@@ -4644,8 +4632,8 @@ impl Brain {
                 status.current_personality
             ),
             executive_summary: format!(
-                "gui {}, creative {}, executive decisions {}",
-                status.gui_status, status.creative_projects_count, status.executive_decisions_count
+                "creative {}, executive decisions {}",
+                status.creative_projects_count, status.executive_decisions_count
             ),
         })
     }

@@ -66,9 +66,7 @@ v0.0.3 adds a deterministic conversation layer. It stores active sessions in `da
 
 The conversation layer is mode based rather than model based. Intent detection, topic extraction, response templates, response quality scoring, and safety filters produce structured answers for teaching, debate, planning, critique, debugging, and research outlines. It does not include an LLM by default and does not claim real understanding.
 
-## Desktop And Executive Layer
-
-v0.0.4 adds a native `eframe`/`egui` desktop GUI shell. GUI actions go through `AppApi`, which wraps existing Brain methods and keeps mutation inside the same sandbox, allowlist, journal, doctor, and regression systems.
+## Executive Layer
 
 The executive layer is consciousness-inspired but not conscious. It tracks a self-model, attention state, metacognitive reports, and executive decisions to make bounded workflow orchestration more inspectable.
 

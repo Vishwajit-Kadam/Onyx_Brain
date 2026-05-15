@@ -11,7 +11,6 @@ Onyx Brain v0.0.3 is an experimental bounded autonomous worker runtime with a de
 - Run reliability tools such as doctor, regression-check, journal, snapshots, rollback, and benchmark commands.
 - Hold deterministic local conversations with chat, modes, conversation memory, and transcripts.
 - Produce debate maps, teaching explanations, critiques, plans, architecture outlines, debugger suggestions, and research outlines.
-- Launch a native `eframe`/`egui` desktop studio shell through `cargo run -- gui`.
 - Create creative production planning packages with timelines, shot lists, sound/VFX notes, and reports.
 - Show a consciousness-inspired self-model, attention state, and executive decisions for bounded orchestration.
 

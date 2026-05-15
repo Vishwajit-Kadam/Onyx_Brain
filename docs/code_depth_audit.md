@@ -39,7 +39,7 @@
 ## Verification
 - All tests passing (116 passed).
 - Cargo formatting and compilation check successful.
-- GUI commands mapped correctly.
+- Runtime commands mapped correctly.
 - Safety invariants (sandbox paths, allowlists) strictly maintained.
 
 ## Next Steps

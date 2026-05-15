@@ -60,22 +60,10 @@ The current release is a deterministic cognitive runtime skeleton. Future releas
 - Bounded autonomous worker engine for artifact creation
 - Deterministic conversational intelligence layer
 - Chat, dialogue modes, personality profiles, transcripts, and conversation memory
-- Native Windows desktop GUI shell using Rust `eframe`/`egui` and the AppApi boundary
 - Consciousness-inspired executive self-model and creative production studio
 - Basic, reliability, and autonomy benchmark modes
 
-## Desktop GUI And Executive Studio
-
-Onyx Brain v0.0.4 now uses a Rust-native `eframe`/`egui` desktop studio. The official GUI path is a native Windows executable. The GUI includes views for chat, autonomy, task boards, artifacts, memory, creative production, safety, settings, and system status.
-
-```bash
-cargo run -- gui
-cargo build --release
-```
-
-The release executable is `target/release/onyx_brain.exe`. No JavaScript toolchain or local web server is required for the native GUI.
-
-The GUI calls the Rust `AppApi` boundary. It does not bypass sandbox rules, command allowlists, or recovery systems.
+## Executive Studio
 
 v0.0.4 also adds a consciousness-inspired executive layer. This is a self-model and reflective state for orchestration, not real consciousness, sentience, AGI, or a real LLM.
 

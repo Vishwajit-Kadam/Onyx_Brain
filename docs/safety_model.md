@@ -40,9 +40,9 @@ The v0.0.3 conversation layer filters unsupported self-claims, fake citations, s
 
 Research-outline mode creates verification notes and citation placeholders. It does not perform web research by default and should not be treated as externally verified.
 
-## GUI, Executive, And Creative Safety
+## Executive And Creative Safety
 
-The desktop GUI uses AppApi instead of direct random file mutation. It does not provide controls to disable sandboxing, command allowlists, or network-disabled-by-default behavior.
+AppApi entry points preserve sandboxing, command allowlists, and network-disabled-by-default behavior.
 
 The executive self-model is consciousness-inspired terminology for state inspection and orchestration. It is not real consciousness, not sentience, and not AGI.
 

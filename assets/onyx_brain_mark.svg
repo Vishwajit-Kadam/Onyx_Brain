@@ -1,7 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 120">
-  <rect width="320" height="120" rx="18" fill="#090b10"/>
-  <path d="M52 74c28-48 68-48 96 0" fill="none" stroke="#6ee7f9" stroke-width="8" stroke-linecap="round"/>
-  <circle cx="76" cy="58" r="7" fill="#e6edf6"/>
-  <circle cx="124" cy="58" r="7" fill="#e6edf6"/>
-  <text x="172" y="70" fill="#e6edf6" font-size="28" font-family="Segoe UI, Arial">Onyx Brain</text>
-</svg>
