@@ -149,6 +149,27 @@ pub fn doctor(store: &DiskStore, repair: bool) -> Result<DoctorReport> {
         conversation_index_path(store),
         &mut issues,
     );
+    // Schema-level check: detect old entries missing estimated_tokens.
+    if let Ok(conv_idx) = load_conversation_index(store) {
+        let stale = conv_idx
+            .sessions
+            .iter()
+            .any(|s| s.estimated_tokens == 0 && s.message_count > 0);
+        if stale {
+            issues.push(StateHealthIssue {
+                path: conversation_index_path(store).display().to_string(),
+                issue_type: StateIssueType::SchemaMismatch,
+                severity: Severity::Warning,
+                message: "conversation index has entries missing estimated_tokens (old schema)"
+                    .to_string(),
+                repair_available: true,
+            });
+            if repair {
+                // Re-loading triggers migration and saves the upgraded index.
+                let _ = load_conversation_index(store);
+            }
+        }
+    }
     let personality = personality_path(store);
     if !personality.exists() {
         issues.push(StateHealthIssue {

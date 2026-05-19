@@ -29,6 +29,8 @@ pub struct ConversationSessionSummary {
     pub mode: ConversationMode,
     pub topic: Option<String>,
     pub message_count: usize,
+    /// Token estimate — defaults to 0 for indexes saved before this field existed.
+    #[serde(default)]
     pub estimated_tokens: usize,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -46,10 +48,51 @@ pub fn conversation_index_path(store: &DiskStore) -> PathBuf {
 
 pub fn load_conversation_index(store: &DiskStore) -> Result<ConversationIndex> {
     let path = conversation_index_path(store);
-    if path.exists() {
-        load_json_with_recovery(&path)
+    if !path.exists() {
+        return Ok(ConversationIndex::default());
+    }
+
+    // Try the normal deserialization path (now tolerant of missing fields
+    // thanks to #[serde(default)] on estimated_tokens).
+    let index: ConversationIndex = match load_json_with_recovery(&path) {
+        Ok(idx) => idx,
+        Err(_) => {
+            // The file is corrupt beyond schema-level fixes. Archive it and
+            // start fresh so that conversation commands keep working.
+            eprintln!(
+                "Warning: Conversation index was corrupt and has been archived. A fresh index was created."
+            );
+            let archive_dir = store.paths.recovery.join("corrupt_archive");
+            let _ = fs::create_dir_all(&archive_dir);
+            let archive_name = format!("{}_conversation_index.json", timestamp_slug());
+            let _ = fs::rename(&path, archive_dir.join(&archive_name));
+            let fresh = ConversationIndex::default();
+            let _ = save_json(&path, &fresh);
+            return Ok(fresh);
+        }
+    };
+
+    // Schema migration: fill estimated_tokens for entries from older schema
+    // (they deserialize with the default value of 0).
+    let needs_migration = index
+        .sessions
+        .iter()
+        .any(|s| s.estimated_tokens == 0 && s.message_count > 0);
+
+    if needs_migration {
+        let mut migrated = index;
+        for session in &mut migrated.sessions {
+            if session.estimated_tokens == 0 && session.message_count > 0 {
+                // Heuristic: ~25 tokens per message on average when we cannot
+                // load the actual messages. This is a safe low estimate.
+                session.estimated_tokens = session.message_count * 25;
+            }
+        }
+        eprintln!("Conversation index was upgraded (added estimated_tokens to older entries).");
+        let _ = save_json_with_backup(&path, &migrated);
+        Ok(migrated)
     } else {
-        Ok(ConversationIndex::default())
+        Ok(index)
     }
 }
 
@@ -294,5 +337,163 @@ mod tests {
         update_conversation_index(&store, &state, 2, 10).unwrap();
         let loaded = load_conversation_index(&store).unwrap();
         assert_eq!(loaded.sessions.len(), MAX_INDEX_ENTRIES);
+    }
+
+    /// Old conversation_index.json without estimated_tokens loads successfully.
+    #[test]
+    fn old_index_without_estimated_tokens_loads() {
+        let store = test_store();
+        let path = conversation_index_path(&store);
+        // Write an old-schema index that lacks estimated_tokens entirely.
+        let old_json = serde_json::json!({
+            "sessions": [
+                {
+                    "session_id": "old_session_1",
+                    "mode": "Standard",
+                    "topic": "Hello World",
+                    "message_count": 4,
+                    "created_at": "2026-05-01T00:00:00Z",
+                    "updated_at": "2026-05-01T00:01:00Z"
+                },
+                {
+                    "session_id": "old_session_2",
+                    "mode": "Debate",
+                    "topic": "Open Source",
+                    "message_count": 6,
+                    "created_at": "2026-05-02T00:00:00Z",
+                    "updated_at": "2026-05-02T00:01:00Z"
+                }
+            ]
+        });
+        crate::storage::save_json(&path, &old_json).unwrap();
+
+        let index = load_conversation_index(&store).unwrap();
+        assert_eq!(index.sessions.len(), 2);
+    }
+
+    /// Migration fills estimated_tokens from message_count heuristic.
+    #[test]
+    fn migration_fills_estimated_tokens() {
+        let store = test_store();
+        let path = conversation_index_path(&store);
+        let old_json = serde_json::json!({
+            "sessions": [
+                {
+                    "session_id": "migrate_1",
+                    "mode": "Standard",
+                    "topic": "Test",
+                    "message_count": 4,
+                    "created_at": "2026-05-01T00:00:00Z",
+                    "updated_at": "2026-05-01T00:01:00Z"
+                }
+            ]
+        });
+        crate::storage::save_json(&path, &old_json).unwrap();
+
+        let index = load_conversation_index(&store).unwrap();
+        // message_count 4 × 25 tokens heuristic = 100
+        assert_eq!(index.sessions[0].estimated_tokens, 100);
+    }
+
+    /// Migrated index saves back to disk successfully.
+    #[test]
+    fn migrated_index_saves_successfully() {
+        let store = test_store();
+        let path = conversation_index_path(&store);
+        let old_json = serde_json::json!({
+            "sessions": [
+                {
+                    "session_id": "save_test",
+                    "mode": "Teacher",
+                    "topic": "Basics",
+                    "message_count": 2,
+                    "created_at": "2026-05-01T00:00:00Z",
+                    "updated_at": "2026-05-01T00:01:00Z"
+                }
+            ]
+        });
+        crate::storage::save_json(&path, &old_json).unwrap();
+
+        // First load triggers migration + save
+        let _ = load_conversation_index(&store).unwrap();
+
+        // Second load should succeed and contain the migrated value
+        let reloaded = load_conversation_index(&store).unwrap();
+        assert_eq!(reloaded.sessions[0].estimated_tokens, 50); // 2 × 25
+        assert_eq!(reloaded.sessions.len(), 1);
+    }
+
+    /// Corrupt conversation index is archived and rebuilt.
+    #[test]
+    fn corrupt_index_archived_and_rebuilt() {
+        let store = test_store();
+        let path = conversation_index_path(&store);
+        // Write invalid JSON
+        fs::write(&path, "this is not valid json {{{").unwrap();
+
+        let index = load_conversation_index(&store).unwrap();
+        assert!(index.sessions.is_empty(), "rebuilt index should be empty");
+
+        // The corrupt file should have been archived
+        let archive_dir = store.paths.recovery.join("corrupt_archive");
+        assert!(
+            archive_dir.exists(),
+            "corrupt_archive directory should exist"
+        );
+        let archived: Vec<_> = fs::read_dir(&archive_dir)
+            .unwrap()
+            .filter_map(|e| e.ok())
+            .collect();
+        assert!(
+            !archived.is_empty(),
+            "at least one archived file should exist"
+        );
+    }
+
+    /// Chat command does not crash when old index exists.
+    #[test]
+    fn chat_command_survives_old_index() {
+        let store = test_store();
+        let path = conversation_index_path(&store);
+        let old_json = serde_json::json!({
+            "sessions": [{
+                "session_id": "chat_old",
+                "mode": "Standard",
+                "topic": "Hello",
+                "message_count": 2,
+                "created_at": "2026-05-01T00:00:00Z",
+                "updated_at": "2026-05-01T00:01:00Z"
+            }]
+        });
+        crate::storage::save_json(&path, &old_json).unwrap();
+
+        // Starting a new conversation should succeed despite the old index
+        let state = start_conversation(&store, ConversationMode::Standard).unwrap();
+        assert_eq!(state.turn_count, 0);
+
+        let index = load_conversation_index(&store).unwrap();
+        assert!(index.sessions.len() >= 2); // old entry + new one
+    }
+
+    /// Mode debate does not crash when old index exists.
+    #[test]
+    fn mode_debate_survives_old_index() {
+        let store = test_store();
+        let path = conversation_index_path(&store);
+        let old_json = serde_json::json!({
+            "sessions": [{
+                "session_id": "debate_old",
+                "mode": "Debate",
+                "topic": "Test",
+                "message_count": 2,
+                "created_at": "2026-05-01T00:00:00Z",
+                "updated_at": "2026-05-01T00:01:00Z"
+            }]
+        });
+        crate::storage::save_json(&path, &old_json).unwrap();
+
+        let state = start_conversation(&store, ConversationMode::Debate).unwrap();
+        assert_eq!(state.turn_count, 0);
+        assert_eq!(state.mode, ConversationMode::Debate);
     }
 }

@@ -62,6 +62,29 @@ The current release is a deterministic cognitive runtime skeleton. Future releas
 - Chat, dialogue modes, personality profiles, transcripts, and conversation memory
 - Consciousness-inspired executive self-model and creative production studio
 - Basic, reliability, and autonomy benchmark modes
+- Rust-native `eframe/egui` GUI with functional AppApi wiring
+
+## Native GUI
+
+Run the native Windows GUI with:
+
+```bash
+cargo run -- gui
+```
+
+### Functional UI wiring
+
+The GUI calls the safe Rust `AppApi` layer instead of mutating internal files directly. Home, Chat, Search, Library, Projects, Tasks, Artifacts, Memory, Safety, System, Settings, Creative Studio, Autonomy, and the `Ctrl+K` command palette are wired to real actions or explicit disabled states.
+
+Settings persist to `data/config/gui_settings.json`. Theme switching supports Light, Dark, and Auto; Auto maps to dark when OS detection is unavailable. Scheduled background jobs and external connectors are intentionally disabled in v0.0.4.
+
+Build the Windows executable with:
+
+```bash
+cargo build --release
+```
+
+The binary is written to `target/release/onyx_brain.exe`.
 
 ## Executive Studio
 

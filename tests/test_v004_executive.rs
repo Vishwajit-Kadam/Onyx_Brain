@@ -18,6 +18,7 @@ fn app_api_status_chat_and_autonomy_paths_work() {
         .send_chat_message(
             "Hello Onyx",
             onyx_brain::conversation::ConversationMode::Standard,
+            onyx_brain::conversation::PersonalityProfile::Balanced,
         )
         .unwrap();
     assert!(chat.response.contains("deterministic"));

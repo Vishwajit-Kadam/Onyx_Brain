@@ -16,6 +16,7 @@ struct Cli {
 
 #[derive(Debug, Subcommand)]
 enum Command {
+    Gui,
     Init,
     Think {
         input: String,
@@ -330,11 +331,14 @@ fn main() -> Result<()> {
 
     let cli = Cli::parse();
     let root = std::env::current_dir()?;
-    let brain = Brain::new(root);
+    let brain = Brain::new(&root);
     let command = cli
         .command
         .unwrap_or(Command::BrainStatus { summary: true });
     match command {
+        Command::Gui => {
+            onyx_brain::gui::run_gui(root)?;
+        }
         Command::Init => {
             brain.init()?;
             println!("Onyx Brain {ONYX_VERSION} initialized");

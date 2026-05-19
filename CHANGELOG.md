@@ -1,60 +1,13 @@
 # Changelog
 
-## v0.0.4 - Executive Autonomy + Creative Production Studio
+## v0.0.4
 
-- Added executive autonomy commands, consciousness-inspired self-model, attention state, metacognitive reports, and executive decisions.
-- Added creative production studio for cinematic planning packages.
-- Added creative and executive benchmarks.
-- Added event log and creative validation docs.
-- Preserved bounded safety framing: not conscious, not AGI, no unrestricted shell, no network by default.
+### Functional UI wiring
 
-## v0.0.3 - Conversational Intelligence Layer
-
-- Added deterministic `chat` command with interactive and one-shot modes.
-- Added dialogue modes for debate, teaching, Socratic guidance, critique, planning, architecture, debugging, research outlines, creative work, summarization, safety review, product management, and coaching.
-- Added disk-backed conversation sessions, conversation memory summaries, transcripts, and transcript export.
-- Added personality profiles that lightly adjust wording without roleplaying consciousness or sentience.
-- Added response quality scoring, prompt library, conversation benchmark, and conversation safety filtering.
-- Extended doctor, brain-status, inspect summary, and regression checks with conversation state.
-
-## v0.0.2 - Autonomous Worker Engine
-
-- Added `autonomize` bounded autonomous worker command.
-- Added `full-bounded` autonomy mode inside hard safety limits.
-- Added markdown artifact creation for presentation workflows.
-- Added artifact manifest, artifact inspection, and session reports.
-- Added autonomous validation and safe repair loop.
-- Added local context discovery constrained to allowed paths.
-- Added autonomy score and autonomy benchmark.
-- Extended brain-status and doctor with autonomy/artifact checks.
-- Added multi-artifact packs with dependency graphs.
-- Added learning-pack, proposal-pack, and documentation-pack deliverable detection.
-- Added deterministic study guide, quiz, glossary, roadmap, risk register, FAQ, and report generators.
-- Added quality review, bounded revision cycles, assumptions logs, and limitations logs.
-- Added workspace manager, workflow recipes, progress logs, review-only mode, repair-only mode, and export-package support.
-- Added dependency-aware autonomous task graphs and a bounded scheduler.
-- Added release-kit, documentation-pack, and learning-pack v2 generation paths.
-- Added self-questioning, claim caution, consistency checks, reflection memory, report cards, queue-run, export inspection, and artifacts benchmark.
-- Added user-friendly command aliases for common autonomy workflows.
-- Added advanced autonomy continuation with master orchestration reports, execution traces, workspace profiles, work contracts, done definitions, final audits, local research briefs, knowledge-gap tracking, cross-links, v2 report cards, export manifests, capability/history/cleanup commands, and launch/technical/product pack workflows.
-
-## v0.0.1 - First Public Release
-
-- First open-source experimental release.
-- Rust-based disk-backed cognitive runtime.
-- Sparse virtual neuron/synapse architecture.
-- Memory hierarchy.
-- Project worker.
-- Goal execution.
-- Skill reuse.
-- Habit/cache systems.
-- Fast-path executor.
-- Action journal.
-- Snapshots.
-- Rollback.
-- Doctor.
-- Regression check.
-- Worker mode.
-- Reliability benchmark.
-
-Internal prototypes `v0.1` through `v0.9` were private development milestones and are not public release versions.
+- Added a Rust-native `eframe/egui` GUI launched with `cargo run -- gui`.
+- Added typed `AppApi` modules for friendly errors, GUI-facing models, and safe action wiring.
+- Added persistent GUI settings at `data/config/gui_settings.json`, including Light/Dark/Auto theme mode and default personality.
+- Added local GUI search across tasks, sessions, artifacts, artifact packs, memories, and projects.
+- Wired Home, Chat, Autonomy, Creative Studio, Library, Projects, Tasks, Artifacts, Memory, Safety, System, Settings, and `Ctrl+K` command palette controls.
+- Added clear disabled states for Scheduled background jobs, external connectors, favorites, and deep artifact inspection gaps.
+- Added GUI/AppApi tests for settings recovery, search, status, safety, task creation, chat, artifacts, and Doctor.

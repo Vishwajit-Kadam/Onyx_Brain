@@ -11,6 +11,7 @@ pub mod creative;
 pub mod energy;
 pub mod executive;
 pub mod experts;
+pub mod gui;
 pub mod learning;
 pub mod memory;
 pub mod routing;
